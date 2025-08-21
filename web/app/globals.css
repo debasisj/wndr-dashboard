@@ -1,4 +1,4 @@
-:root{
+:root {
   --bg: #0a0b0f;
   --panel: #111318;
   --panel-2: #151922;
@@ -13,47 +13,256 @@
   --card: #131722;
 }
 
-*{box-sizing:border-box}
-html,body{padding:0;margin:0;background:var(--bg);color:var(--text)}
-body{font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial}
+* {
+  box-sizing: border-box
+}
 
-a{color:inherit;text-decoration:none}
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text)
+}
 
-.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-.sidebar{border-right:1px solid var(--border);padding:16px;position:sticky;top:0;align-self:start;height:100vh;background:var(--panel)}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.brand-title{font-size:18px;margin:0;color:#fff}
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial
+}
 
-.nav{display:grid;gap:6px}
-.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text);background:transparent;border:1px solid transparent}
-.nav a:hover{background:var(--panel-2);border-color:var(--border)}
+a {
+  color: inherit;
+  text-decoration: none
+}
 
-.content{padding:16px}
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh
+}
 
-.grid{display:grid;gap:16px}
-.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  background: var(--panel)
+}
 
-.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
-.card-title{margin:0 0 8px 0;font-weight:600}
-.metric{font-size:24px;font-weight:700}
-.muted{color:var(--muted);font-size:12px}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px
+}
 
-.btn{appearance:none;border:1px solid var(--border);background:var(--panel-2);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer}
-.btn:hover{border-color:var(--primary);}
-.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-.btn.danger{background:transparent;border-color:rgba(239,68,68,.4);color:#fff}
-.btn.danger:hover{background:rgba(239,68,68,.12)}
+.brand-title {
+  font-size: 18px;
+  margin: 0;
+  color: #fff
+}
 
-.input, textarea, select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px}
-textarea{width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+.nav {
+  display: grid;
+  gap: 6px
+}
 
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{border-bottom:1px solid var(--border);padding:10px;text-align:left}
-.table thead th{color:var(--muted);font-weight:500}
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent
+}
 
-.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);font-size:12px}
+.nav a:hover {
+  background: var(--panel-2);
+  border-color: var(--border)
+}
 
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.content {
+  padding: 16px
+}
 
-footer{color:var(--muted);font-size:12px;margin-top:24px}
+.grid {
+  display: grid;
+  gap: 16px
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr))
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px
+}
+
+.card-title {
+  margin: 0 0 8px 0;
+  font-weight: 600
+}
+
+.metric {
+  font-size: 24px;
+  font-weight: 700
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer
+}
+
+.btn:hover {
+  border-color: var(--primary);
+}
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff
+}
+
+.btn.danger {
+  background: transparent;
+  border-color: rgba(239, 68, 68, .4);
+  color: #fff
+}
+
+.btn.danger:hover {
+  background: rgba(239, 68, 68, .12)
+}
+
+.input,
+textarea,
+select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px
+}
+
+textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  text-align: left
+}
+
+.table thead th {
+  color: var(--muted);
+  font-weight: 500
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  font-size: 12px
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px
+}
+
+footer {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 24px
+}
+
+/* Filter styles */
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px
+}
+
+.filter-group label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500
+}
+
+.filter-select,
+.filter-input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px
+}
+
+.filter-select:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: var(--primary)
+}
+
+.filter-select:disabled {
+  background: var(--panel);
+  color: var(--muted);
+  cursor: not-allowed
+}
+
+.clear-filters-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  height: fit-content
+}
+
+.clear-filters-btn:hover {
+  border-color: var(--primary);
+  color: var(--text)
+}
