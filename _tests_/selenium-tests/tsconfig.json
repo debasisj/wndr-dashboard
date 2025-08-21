@@ -6,7 +6,12 @@
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "types": ["node", "mocha"]
+    "types": [
+      "node",
+      "mocha"
+    ]
   },
-  "include": ["scripts/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts"
+  ]
 }
