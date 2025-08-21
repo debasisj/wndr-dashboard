@@ -9,6 +9,8 @@ services:
       - REPORTS_STORAGE=local
       - REPORTS_DIR=/app/storage/reports
       - CORS_ORIGIN=*
+      - ADMIN_ENABLED=true
+      - ADMIN_TOKEN=b8f2a9f3d1e94f35b0c1e6b9a7c2d4e8f1a3b5c7d9e0f2a4b6c8d0e1f3a5b7c9
     volumes:
       - api_data:/app/prisma
       - reports_data:/app/storage/reports
