@@ -31,7 +31,7 @@ function requireAdmin(req: any, res: any): boolean {
 export function sseInit(server: Server) {
   server.on('close', () => {
     for (const res of sseClients) {
-      try { res.end(); } catch {}
+      try { res.end(); } catch { }
     }
     sseClients.clear();
   });
@@ -69,7 +69,7 @@ const IngestSchema = z.object({
   }),
   cases: z.array(z.object({
     name: z.string(),
-    status: z.enum(['passed','failed','skipped']),
+    status: z.enum(['passed', 'failed', 'skipped']),
     durationMs: z.number().int().nonnegative(),
     errorMessage: z.string().optional(),
     browser: z.string().optional(),
@@ -187,6 +187,23 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
   res.json({ reportUrl: `/reports/${finalName}` });
 });
 
+// Temporary mock endpoint for coverage history (real data will be added later)
+router.get('/coverage/history', async (req, res) => {
+  // Mock data for demonstration - using real coverage data from database would be:
+  // const coverageHistory = await prisma.testAutoCoverage.findMany({...});
+  const mockData = [
+    { id: '1', projectId: 'proj1', autoTestCovered: 45, manualTestCovered: 35, total: 100, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '2', projectId: 'proj1', autoTestCovered: 50, manualTestCovered: 35, total: 105, createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '3', projectId: 'proj1', autoTestCovered: 55, manualTestCovered: 40, total: 110, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '4', projectId: 'proj1', autoTestCovered: 62, manualTestCovered: 38, total: 115, createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '5', projectId: 'proj1', autoTestCovered: 68, manualTestCovered: 37, total: 120, createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '6', projectId: 'proj1', autoTestCovered: 75, manualTestCovered: 35, total: 125, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
+    { id: '7', projectId: 'proj1', autoTestCovered: 80, manualTestCovered: 35, total: 130, createdAt: new Date(), project: { key: 'web-app' } }
+  ];
+
+  res.json(mockData);
+});
+
 router.get('/runs', async (req, res) => {
   const { projectKey } = req.query as { projectKey?: string };
   const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
@@ -203,7 +220,7 @@ router.delete('/runs/:id', async (req, res) => {
   // Delete report file if present
   if (run.reportFilename) {
     const filePath = path.join(reportsDir, run.reportFilename);
-    try { await fs.promises.unlink(filePath); } catch {}
+    try { await fs.promises.unlink(filePath); } catch { }
   }
 
   // Delete cases then run in a transaction
@@ -243,5 +260,53 @@ router.post('/admin/db/execute', async (req, res) => {
     res.json({ result });
   } catch (e: any) {
     res.status(400).json({ error: 'execute_error', message: e?.message || String(e) });
+  }
+});
+
+// Get all projects for filter dropdown
+router.get('/projects', async (req, res) => {
+  try {
+    const projects = await prisma.project.findMany({
+      select: {
+        id: true,
+        key: true
+      },
+      orderBy: {
+        key: 'asc'
+      }
+    });
+    res.json(projects);
+  } catch (e: any) {
+    res.status(500).json({ error: 'fetch_projects_error', message: e?.message || String(e) });
+  }
+});
+
+// Get all suites for filter dropdown (optionally filtered by project)
+router.get('/suites', async (req, res) => {
+  try {
+    const { projectKey } = req.query as { projectKey?: string };
+
+    let where = {};
+    if (projectKey) {
+      const project = await prisma.project.findUnique({ where: { key: projectKey } });
+      if (project) {
+        where = { projectId: project.id };
+      }
+    }
+
+    const suites = await prisma.testRun.findMany({
+      where,
+      select: {
+        suite: true
+      },
+      distinct: ['suite'],
+      orderBy: {
+        suite: 'asc'
+      }
+    });
+
+    res.json(suites);
+  } catch (e: any) {
+    res.status(500).json({ error: 'fetch_suites_error', message: e?.message || String(e) });
   }
 });
