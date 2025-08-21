@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import path from 'path';
 
 const apiBase = process.env.DASHBOARD_API || 'http://localhost:4000';
 const projectKey = process.env.DASHBOARD_PROJECT || 'web-app';
@@ -63,14 +63,14 @@ function gatherResults(dir: string): Counts {
   };
 
   if (fs.existsSync(merged)) {
-    try { readMochawesome(merged); } catch {}
+    try { readMochawesome(merged); } catch { }
   }
 
   if (acc.cases.length === 0) {
     const candidates = [dir, path.join(dir, '.jsons')];
     const jsonFiles = Array.from(new Set(candidates.flatMap(listJsonFilesRecursive)));
     for (const f of jsonFiles) {
-      try { readMochawesome(f); } catch {}
+      try { readMochawesome(f); } catch { }
     }
   }
 
