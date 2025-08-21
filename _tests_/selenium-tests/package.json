@@ -1,0 +1,21 @@
+{
+  "name": "wndr-selenium-tests",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "mocha --config .mocharc.cjs",
+    "ingest": "tsx scripts/postRun.ts",
+    "e2e": "npm run test || true && npm run ingest"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^24.3.0",
+    "mocha": "^10.7.3",
+    "mochawesome": "^7.1.3",
+    "tsx": "^4.16.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,59 @@
+:root{
+  --bg: #0a0b0f;
+  --panel: #111318;
+  --panel-2: #151922;
+  --text: #e8eaed;
+  --muted: #a1a7b3;
+  --primary: #4f86ff;
+  --primary-2: #315ed6;
+  --accent: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --border: #202735;
+  --card: #131722;
+}
+
+*{box-sizing:border-box}
+html,body{padding:0;margin:0;background:var(--bg);color:var(--text)}
+body{font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial}
+
+a{color:inherit;text-decoration:none}
+
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{border-right:1px solid var(--border);padding:16px;position:sticky;top:0;align-self:start;height:100vh;background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.brand-title{font-size:18px;margin:0;color:#fff}
+
+.nav{display:grid;gap:6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text);background:transparent;border:1px solid transparent}
+.nav a:hover{background:var(--panel-2);border-color:var(--border)}
+
+.content{padding:16px}
+
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.card-title{margin:0 0 8px 0;font-weight:600}
+.metric{font-size:24px;font-weight:700}
+.muted{color:var(--muted);font-size:12px}
+
+.btn{appearance:none;border:1px solid var(--border);background:var(--panel-2);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--primary);}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.danger{background:transparent;border-color:rgba(239,68,68,.4);color:#fff}
+.btn.danger:hover{background:rgba(239,68,68,.12)}
+
+.input, textarea, select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px}
+textarea{width:100%;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid var(--border);padding:10px;text-align:left}
+.table thead th{color:var(--muted);font-weight:500}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);font-size:12px}
+
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+
+footer{color:var(--muted);font-size:12px;margin-top:24px}

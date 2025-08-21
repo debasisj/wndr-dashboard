@@ -1,0 +1,18 @@
+{
+  "name": "wndr-cypress-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "cypress run",
+    "ingest": "tsx scripts/postRun.ts",
+    "e2e": "npm run test || true && npm run ingest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "cypress": "^13.13.1",
+    "cypress-mochawesome-reporter": "^3.8.2",
+    "tsx": "^4.16.2",
+    "typescript": "^5.4.5"
+  }
+}
