@@ -7,12 +7,12 @@ async function main() {
   const project = await prisma.project.upsert({
     where: { key: 'web-app' },
     update: {},
-    create: { key: 'web-app', name: 'Web App' }
+    create: { key: 'web-app' }
   });
   const project2 = await prisma.project.upsert({
     where: { key: 'api-service' },
     update: {},
-    create: { key: 'api-service', name: 'API Service' }
+    create: { key: 'api-service' }
   });
 
   const now = new Date();
