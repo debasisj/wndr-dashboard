@@ -8,7 +8,7 @@ WEB_DIR="$ROOT/web"
 # Config (override via env if needed)
 API_PORT="${PORT:-4000}"
 DB_URL="${DATABASE_URL:-file:./dev.db}"
-ADMIN_ENABLED="${ADMIN_ENABLED:-false}"   # set true if using admin UI
+ADMIN_ENABLED="${ADMIN_ENABLED:-true}"   # set true if using admin UI
 # ADMIN_TOKEN can be provided via env
 
 pids=()
