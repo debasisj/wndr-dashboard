@@ -6,7 +6,6 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 interface Filters {
   project: string;
-  suite: string;
   since: string;
   until: string;
 }
@@ -15,10 +14,8 @@ export default function Page() {
   const [summary, setSummary] = useState<{ totals: { runs: number }, passRate: number, avgDurationMs: number, coveragePctAvg: number | null } | null>(null);
   const [eventsConnected, setEventsConnected] = useState(false);
   const [projects, setProjects] = useState<{ id: string, key: string }[]>([]);
-  const [suites, setSuites] = useState<{ suite: string }[]>([]);
   const [filters, setFilters] = useState<Filters>({
     project: '',
-    suite: '',
     since: '',
     until: ''
   });
@@ -26,7 +23,6 @@ export default function Page() {
   const buildQueryString = (filters: Filters) => {
     const params = new URLSearchParams();
     if (filters.project) params.append('projectKey', filters.project);
-    if (filters.suite) params.append('suite', filters.suite);
     if (filters.since) params.append('since', filters.since);
     if (filters.until) params.append('until', filters.until);
     return params.toString();
@@ -43,19 +39,9 @@ export default function Page() {
     setProjects(await res.json());
   };
 
-  const fetchSuites = async () => {
-    const queryString = filters.project ? `?projectKey=${filters.project}` : '';
-    const res = await fetch(`${apiBase}/api/v1/suites${queryString}`);
-    setSuites(await res.json());
-  };
-
   useEffect(() => {
     fetchProjects();
   }, []);
-
-  useEffect(() => {
-    fetchSuites();
-  }, [filters.project]);
 
   useEffect(() => {
     fetchSummary();
@@ -73,20 +59,12 @@ export default function Page() {
   }, []);
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, [key]: value };
-      // Reset suite when project changes
-      if (key === 'project') {
-        newFilters.suite = '';
-      }
-      return newFilters;
-    });
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const clearFilters = () => {
     setFilters({
       project: '',
-      suite: '',
       since: '',
       until: ''
     });
@@ -120,21 +98,7 @@ export default function Page() {
             </select>
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="suite-filter">Suite</label>
-            <select
-              id="suite-filter"
-              value={filters.suite}
-              onChange={(e) => handleFilterChange('suite', e.target.value)}
-              className="filter-select"
-              disabled={!filters.project}
-            >
-              <option value="">All Suites</option>
-              {suites.map(s => (
-                <option key={s.suite} value={s.suite}>{s.suite}</option>
-              ))}
-            </select>
-          </div>
+
 
           <div className="filter-group">
             <label htmlFor="since-filter">Since</label>
@@ -211,7 +175,6 @@ function TinyTrend({ endpoint, mapper, filters }: {
   const buildQueryString = (filters: Filters) => {
     const params = new URLSearchParams();
     if (filters.project) params.append('projectKey', filters.project);
-    if (filters.suite) params.append('suite', filters.suite);
     if (filters.since) params.append('since', filters.since);
     if (filters.until) params.append('until', filters.until);
     return params.toString();
@@ -251,7 +214,6 @@ function StackedStatusChart({ filters }: { filters: Filters }) {
   const buildQueryString = (filters: Filters) => {
     const params = new URLSearchParams();
     if (filters.project) params.append('projectKey', filters.project);
-    if (filters.suite) params.append('suite', filters.suite);
     if (filters.since) params.append('since', filters.since);
     if (filters.until) params.append('until', filters.until);
     return params.toString();
