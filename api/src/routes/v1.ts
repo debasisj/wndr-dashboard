@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import type { Server } from 'node:http';
+import { S3Service } from '../services/s3.js';
 
 export const router = Router();
 const prisma = new PrismaClient();
@@ -183,26 +184,77 @@ router.get('/kpis/summary', async (req, res) => {
   });
 });
 
-// Multer storage (local)
+// Storage configuration
+const STORAGE_TYPE = process.env.REPORTS_STORAGE || 'local'; // 'local' or 's3'
 const reportsDir = process.env.REPORTS_DIR || path.join(process.cwd(), 'storage', 'reports');
-fs.mkdirSync(reportsDir, { recursive: true });
-const upload = multer({ dest: path.join(reportsDir, 'tmp') });
+
+// Ensure local directory exists if using local storage
+if (STORAGE_TYPE === 'local') {
+  fs.mkdirSync(reportsDir, { recursive: true });
+}
+
+const upload = multer({ dest: path.join(process.cwd(), 'tmp') });
 
 router.post('/reports/upload', upload.single('report'), async (req, res) => {
   const runId = req.body?.runId as string | undefined;
   if (!runId) return res.status(400).json({ error: 'missing_runId' });
   if (!req.file) return res.status(400).json({ error: 'missing_file' });
 
-  const original = req.file.originalname.replace(/[^A-Za-z0-9_.-]/g, '_');
-  const finalName = `${runId}_${Date.now()}_${original}`;
-  const finalPath = path.join(reportsDir, finalName);
-  await fs.promises.mkdir(reportsDir, { recursive: true });
-  await fs.promises.rename(req.file.path, finalPath);
+  try {
+    const original = req.file.originalname.replace(/[^A-Za-z0-9_.-]/g, '_');
+    const finalName = `${runId}_${Date.now()}_${original}`;
+    let reportUrl: string;
 
-  await prisma.testRun.update({ where: { id: runId }, data: { reportFilename: finalName } });
+    if (STORAGE_TYPE === 's3') {
+      // Upload to S3
+      const s3Key = `reports/${finalName}`;
+      const contentType = req.file.mimetype || 'application/octet-stream';
+      await S3Service.uploadFile(s3Key, req.file.path, contentType);
+      reportUrl = `/api/v1/reports/${finalName}`; // We'll serve via signed URLs
+      
+      // Clean up temp file
+      await fs.promises.unlink(req.file.path);
+    } else {
+      // Local storage
+      const finalPath = path.join(reportsDir, finalName);
+      await fs.promises.mkdir(reportsDir, { recursive: true });
+      await fs.promises.rename(req.file.path, finalPath);
+      reportUrl = `/reports/${finalName}`;
+    }
 
-  sseBroadcast('run.updated', { runId, report: `/reports/${finalName}` });
-  res.json({ reportUrl: `/reports/${finalName}` });
+    await prisma.testRun.update({ where: { id: runId }, data: { reportFilename: finalName } });
+
+    sseBroadcast('run.updated', { runId, report: reportUrl });
+    res.json({ reportUrl });
+  } catch (error) {
+    console.error('Upload error:', error);
+    // Clean up temp file on error
+    if (req.file?.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {}
+    }
+    res.status(500).json({ error: 'upload_failed' });
+  }
+});
+
+// Serve reports (S3 signed URLs or local files)
+router.get('/reports/:filename', async (req, res) => {
+  const { filename } = req.params;
+  
+  if (STORAGE_TYPE === 's3') {
+    try {
+      const s3Key = `reports/${filename}`;
+      const signedUrl = await S3Service.getSignedUrl(s3Key, 3600); // 1 hour expiry
+      res.redirect(signedUrl);
+    } catch (error) {
+      console.error('S3 error:', error);
+      res.status(404).json({ error: 'file_not_found' });
+    }
+  } else {
+    // Local file serving (handled by express.static in index.ts)
+    res.status(404).json({ error: 'use_static_route' });
+  }
 });
 
 router.get('/coverage/history', async (req, res) => {
