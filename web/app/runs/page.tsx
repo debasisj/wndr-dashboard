@@ -3,11 +3,31 @@ import { useEffect, useState } from 'react';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export default function RunsPage() {
   const [runs, setRuns] = useState<any[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const load = () => fetch(`${apiBase}/api/v1/runs`).then(r => r.json()).then(setRuns);
+  const load = (page: number = 1) => {
+    fetch(`${apiBase}/api/v1/runs?page=${page}`)
+      .then(r => r.json())
+      .then(data => {
+        setRuns(data.runs || data); // Handle both old and new response format
+        setPagination(data.pagination || null);
+        setCurrentPage(page);
+      });
+  };
+
   useEffect(() => { load(); }, []);
 
   const onDelete = async (id: string) => {
@@ -16,7 +36,7 @@ export default function RunsPage() {
     try {
       const res = await fetch(`${apiBase}/api/v1/runs/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('delete_failed');
-      await load();
+      await load(currentPage);
     } finally {
       setBusyId(null);
     }
@@ -61,6 +81,61 @@ export default function RunsPage() {
           </tbody>
         </table>
       </div>
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="card" style={{ textAlign: 'center', padding: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              className="btn"
+              onClick={() => load(1)}
+              disabled={currentPage === 1}
+            >
+              First
+            </button>
+            <button
+              className="btn"
+              onClick={() => load(currentPage - 1)}
+              disabled={!pagination.hasPrev}
+            >
+              Previous
+            </button>
+
+            <span style={{ margin: '0 1rem', fontSize: '0.9rem', color: '#666' }}>
+              Page {pagination.currentPage} of {pagination.totalPages} ({pagination.totalCount} total runs)
+            </span>
+
+            <button
+              className="btn"
+              onClick={() => load(currentPage + 1)}
+              disabled={!pagination.hasNext}
+            >
+              Next
+            </button>
+            <button
+              className="btn"
+              onClick={() => load(pagination.totalPages)}
+              disabled={currentPage === pagination.totalPages}
+            >
+              Last
+            </button>
+          </div>
+
+          {pagination.totalPages <= 10 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pageNum => (
+                <button
+                  key={pageNum}
+                  className={`btn ${pageNum === currentPage ? 'primary' : ''}`}
+                  onClick={() => load(pageNum)}
+                  style={{ minWidth: '2rem', padding: '0.25rem 0.5rem' }}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
