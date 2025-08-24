@@ -201,7 +201,11 @@ function TinyTrend({ endpoint, mapper, filters }: {
     const queryString = buildQueryString(filters);
     fetch(`${apiBase}${endpoint}${queryString ? `?${queryString}` : ''}`)
       .then(r => r.json())
-      .then(json => setData(mapper(json)));
+      .then(json => {
+        // Handle both old format (array) and new format (object with runs property)
+        const runsData = Array.isArray(json) ? json : json.runs || [];
+        setData(mapper(runsData));
+      });
   }, [endpoint, mapper, filters]);
 
   return (
@@ -240,11 +244,13 @@ function StackedStatusChart({ filters }: { filters: Filters }) {
     const queryString = buildQueryString(filters);
     fetch(`${apiBase}/api/v1/runs${queryString ? `?${queryString}` : ''}`)
       .then(r => r.json())
-      .then((runs: any[]) => {
+      .then((response: any) => {
+        // Handle both old format (array) and new format (object with runs property)
+        const runs = Array.isArray(response) ? response : response.runs || [];
         const mapped = runs
           .slice()
           .reverse()
-          .map(r => {
+          .map((r: { totalCount: any; passCount: any; failCount: any; skipCount: any; startedAt: string | number | Date; }) => {
             const notExecuted = Math.max(0, (r.totalCount || 0) - (r.passCount || 0) - (r.failCount || 0) - (r.skipCount || 0));
             return {
               date: formatDateShort(r.startedAt),
