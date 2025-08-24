@@ -188,6 +188,10 @@ router.get('/kpis/summary', async (req, res) => {
 const STORAGE_TYPE = process.env.REPORTS_STORAGE || 'local'; // 'local' or 's3'
 const reportsDir = process.env.REPORTS_DIR || path.join(process.cwd(), 'storage', 'reports');
 
+// Debug logging
+console.log('STORAGE_TYPE:', STORAGE_TYPE);
+console.log('REPORTS_STORAGE env var:', process.env.REPORTS_STORAGE);
+
 // Ensure local directory exists if using local storage
 if (STORAGE_TYPE === 'local') {
   fs.mkdirSync(reportsDir, { recursive: true });
@@ -211,7 +215,7 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
       const contentType = req.file.mimetype || 'application/octet-stream';
       await S3Service.uploadFile(s3Key, req.file.path, contentType);
       reportUrl = `/api/v1/reports/${finalName}`; // We'll serve via signed URLs
-      
+
       // Clean up temp file
       await fs.promises.unlink(req.file.path);
     } else {
@@ -222,7 +226,7 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
       reportUrl = `/reports/${finalName}`;
     }
 
-    await prisma.testRun.update({ where: { id: runId }, data: { reportFilename: finalName } });
+    await prisma.testRun.update({ where: { id: runId }, data: { reportFilename: finalName, reportUrl } });
 
     sseBroadcast('run.updated', { runId, report: reportUrl });
     res.json({ reportUrl });
@@ -232,7 +236,7 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
     if (req.file?.path) {
       try {
         await fs.promises.unlink(req.file.path);
-      } catch {}
+      } catch { }
     }
     res.status(500).json({ error: 'upload_failed' });
   }
@@ -241,7 +245,7 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
 // Serve reports (S3 signed URLs or local files)
 router.get('/reports/:filename', async (req, res) => {
   const { filename } = req.params;
-  
+
   if (STORAGE_TYPE === 's3') {
     try {
       const s3Key = `reports/${filename}`;
@@ -285,9 +289,9 @@ router.get('/coverage/history', async (req, res) => {
 });
 
 router.get('/runs', async (req, res) => {
-  const { projectKey, since, until, page, limit } = req.query as { 
-    projectKey?: string; 
-    since?: string; 
+  const { projectKey, since, until, page, limit } = req.query as {
+    projectKey?: string;
+    since?: string;
     until?: string;
     page?: string;
     limit?: string;
@@ -322,9 +326,9 @@ router.get('/runs', async (req, res) => {
   const totalCount = await prisma.testRun.count({ where });
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const runs = await prisma.testRun.findMany({ 
-    where, 
-    orderBy: { startedAt: 'desc' }, 
+  const runs = await prisma.testRun.findMany({
+    where,
+    orderBy: { startedAt: 'desc' },
     take: pageSize,
     skip: skip
   });
