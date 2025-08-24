@@ -18,4 +18,4 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
 RUN mkdir -p /app/storage/reports
 EXPOSE 4000
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/index.ts"]

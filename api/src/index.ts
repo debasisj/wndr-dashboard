@@ -24,8 +24,8 @@ app.use('/api/v1', v1Router);
 // Health
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-const server = app.listen(port, () => {
-  console.log(`[api] listening on http://localhost:${port}`);
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`[api] listening on http://0.0.0.0:${port}`);
 });
 
 sseInit(server);
