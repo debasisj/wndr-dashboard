@@ -72,7 +72,7 @@ export default function RunsPage() {
                 <Td><span className="chip">❌ {r.failCount}</span></Td>
                 <Td><span className="chip">⏭️ {r.skipCount}</span></Td>
                 <Td>{formatMs(r.durationMs)}</Td>
-                <Td>{r.reportFilename ? <a className="btn" href={`${apiBase}/reports/${r.reportFilename}`} target="_blank">Open</a> : '-'}</Td>
+                <Td>{r.reportUrl ? <a className="btn" href={`${apiBase}${r.reportUrl}`} target="_blank">Open</a> : '-'}</Td>
                 <Td>
                   <button className="btn danger" onClick={() => onDelete(r.id)} disabled={busyId === r.id}>{busyId === r.id ? 'Deleting...' : 'Delete'}</button>
                 </Td>
