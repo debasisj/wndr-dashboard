@@ -144,9 +144,27 @@ router.post('/results', async (req, res) => {
 });
 
 router.get('/kpis/summary', async (req, res) => {
-  const { projectKey } = req.query as { projectKey?: string };
+  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
   const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
-  const where = project ? { projectId: project.id } : {};
+
+  let where: any = project ? { projectId: project.id } : {};
+
+  // Add date filtering with validation
+  if (since || until) {
+    where.startedAt = {};
+    if (since) {
+      const sinceDate = new Date(since);
+      if (!isNaN(sinceDate.getTime())) {
+        where.startedAt.gte = sinceDate;
+      }
+    }
+    if (until) {
+      const untilDate = new Date(until);
+      if (!isNaN(untilDate.getTime())) {
+        where.startedAt.lte = untilDate;
+      }
+    }
+  }
 
   const [runsCount, last10, coverageAvg] = await Promise.all([
     prisma.testRun.count({ where }),
@@ -189,25 +207,55 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
 
 // Temporary mock endpoint for coverage history (real data will be added later)
 router.get('/coverage/history', async (req, res) => {
-  // Mock data for demonstration - using real coverage data from database would be:
-  // const coverageHistory = await prisma.testAutoCoverage.findMany({...});
-  const mockData = [
-    { id: '1', projectId: 'proj1', autoTestCovered: 45, manualTestCovered: 35, total: 100, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '2', projectId: 'proj1', autoTestCovered: 50, manualTestCovered: 35, total: 105, createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '3', projectId: 'proj1', autoTestCovered: 55, manualTestCovered: 40, total: 110, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '4', projectId: 'proj1', autoTestCovered: 62, manualTestCovered: 38, total: 115, createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '5', projectId: 'proj1', autoTestCovered: 68, manualTestCovered: 37, total: 120, createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '6', projectId: 'proj1', autoTestCovered: 75, manualTestCovered: 35, total: 125, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), project: { key: 'web-app' } },
-    { id: '7', projectId: 'proj1', autoTestCovered: 80, manualTestCovered: 35, total: 130, createdAt: new Date(), project: { key: 'web-app' } }
-  ];
+  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
+  const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
 
-  res.json(mockData);
+  let where: any = project ? { projectId: project.id } : {};
+
+  // Add date filtering with validation
+  if (since || until) {
+    where.createdAt = {};
+    if (since) {
+      const sinceDate = new Date(since);
+      if (!isNaN(sinceDate.getTime())) {
+        where.createdAt.gte = sinceDate;
+      }
+    }
+    if (until) {
+      const untilDate = new Date(until);
+      if (!isNaN(untilDate.getTime())) {
+        where.createdAt.lte = untilDate;
+      }
+    }
+  }
+
+  const testAutoCoverageVsManual = await prisma.testAutoCoverage.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 });
+  res.json(testAutoCoverageVsManual);
 });
 
 router.get('/runs', async (req, res) => {
-  const { projectKey } = req.query as { projectKey?: string };
+  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
   const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
-  const where = project ? { projectId: project.id } : {};
+
+  let where: any = project ? { projectId: project.id } : {};
+
+  // Add date filtering with validation
+  if (since || until) {
+    where.startedAt = {};
+    if (since) {
+      const sinceDate = new Date(since);
+      if (!isNaN(sinceDate.getTime())) {
+        where.startedAt.gte = sinceDate;
+      }
+    }
+    if (until) {
+      const untilDate = new Date(until);
+      if (!isNaN(untilDate.getTime())) {
+        where.startedAt.lte = untilDate;
+      }
+    }
+  }
+
   const runs = await prisma.testRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: 50 });
   res.json(runs);
 });

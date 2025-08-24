@@ -19,6 +19,11 @@ export default function Page() {
     since: '',
     until: ''
   });
+  const [formFilters, setFormFilters] = useState<Filters>({
+    project: '',
+    since: '',
+    until: ''
+  });
 
   const buildQueryString = (filters: Filters) => {
     const params = new URLSearchParams();
@@ -58,16 +63,22 @@ export default function Page() {
     return () => es.close();
   }, []);
 
-  const handleFilterChange = (key: keyof Filters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const handleFormFilterChange = (key: keyof Filters, value: string) => {
+    setFormFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    setFilters({ ...formFilters });
   };
 
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       project: '',
       since: '',
       until: ''
-    });
+    };
+    setFormFilters(emptyFilters);
+    setFilters(emptyFilters);
   };
 
   const cards = useMemo(() => ([
@@ -87,8 +98,8 @@ export default function Page() {
             <label htmlFor="project-filter">Project</label>
             <select
               id="project-filter"
-              value={filters.project}
-              onChange={(e) => handleFilterChange('project', e.target.value)}
+              value={formFilters.project}
+              onChange={(e) => handleFormFilterChange('project', e.target.value)}
               className="filter-select"
             >
               <option value="">All Projects</option>
@@ -104,9 +115,9 @@ export default function Page() {
             <label htmlFor="since-filter">Since</label>
             <input
               id="since-filter"
-              type="datetime-local"
-              value={filters.since}
-              onChange={(e) => handleFilterChange('since', e.target.value)}
+              type="date"
+              value={formFilters.since}
+              onChange={(e) => handleFormFilterChange('since', e.target.value)}
               className="filter-input"
             />
           </div>
@@ -115,11 +126,17 @@ export default function Page() {
             <label htmlFor="until-filter">Until</label>
             <input
               id="until-filter"
-              type="datetime-local"
-              value={filters.until}
-              onChange={(e) => handleFilterChange('until', e.target.value)}
+              type="date"
+              value={formFilters.until}
+              onChange={(e) => handleFormFilterChange('until', e.target.value)}
               className="filter-input"
             />
+          </div>
+
+          <div className="filter-group">
+            <button onClick={applyFilters} className="apply-filters-btn">
+              Apply Filters
+            </button>
           </div>
 
           <div className="filter-group">
@@ -372,5 +389,5 @@ function formatMs(ms: number) {
 
 function formatDateShort(input: string | number | Date) {
   const d = new Date(input);
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(-2)}`;
 }
