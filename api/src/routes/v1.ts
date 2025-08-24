@@ -228,7 +228,7 @@ router.get('/coverage/history', async (req, res) => {
     }
   }
 
-  const testAutoCoverageVsManual = await prisma.testAutoCoverage.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 });
+  const testAutoCoverageVsManual = await prisma.testAutoCoverage.findMany({ where, orderBy: { createdAt: 'asc' }, take: 100 });
   res.json(testAutoCoverageVsManual);
 });
 
