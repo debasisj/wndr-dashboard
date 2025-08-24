@@ -13,7 +13,15 @@ export default function ReportsPage() {
   const [uploading, setUploading] = useState(false);
   const [reportUrl, setReportUrl] = useState<string>('');
 
-  useEffect(() => { fetch(`${apiBase}/api/v1/runs`).then(r => r.json()).then(setRuns); }, []);
+  useEffect(() => {
+    fetch(`${apiBase}/api/v1/runs`)
+      .then(r => r.json())
+      .then(response => {
+        // Handle both old format (array) and new format (object with runs property)
+        const runsData = Array.isArray(response) ? response : response.runs || [];
+        setRuns(runsData);
+      });
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
