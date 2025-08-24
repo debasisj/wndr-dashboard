@@ -50,3 +50,5 @@ web/.next/app-build-manifest.json
 /web/.next
 web/.next/cache/webpack/client-development/0.pack.gz
 web/.next/trace
+deploy/wndr-dash.pem
+deploy/wndr-dashboard-app_accessKeys.csv
