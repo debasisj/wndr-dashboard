@@ -389,5 +389,5 @@ function formatMs(ms: number) {
 
 function formatDateShort(input: string | number | Date) {
   const d = new Date(input);
-  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(-2)}`;
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear().toString().slice(-2)}`;
 }
