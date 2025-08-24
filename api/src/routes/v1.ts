@@ -205,7 +205,6 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
   res.json({ reportUrl: `/reports/${finalName}` });
 });
 
-// Temporary mock endpoint for coverage history (real data will be added later)
 router.get('/coverage/history', async (req, res) => {
   const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
   const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
