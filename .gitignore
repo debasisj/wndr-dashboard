@@ -1,6 +1,9 @@
 # Node modules
 **/node_modules/
 
+# Next.js build output
+**/.next/**
+
 # Test reports and results
 **/reports/
 **/mochawesome-report/
@@ -42,3 +45,8 @@ yarn-error.log*
 
 # VS Code settings
 .vscode/
+/web/.next/**
+web/.next/app-build-manifest.json
+/web/.next
+web/.next/cache/webpack/client-development/0.pack.gz
+web/.next/trace
