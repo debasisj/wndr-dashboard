@@ -9,18 +9,17 @@ datasource db {
 }
 
 model Project {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  runs      TestRun[]
+  id              String             @id @default(cuid())
+  key             String             @unique
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
   coverageHistory TestAutoCoverage[]
+  runs            TestRun[]
 }
 
 model TestRun {
-  id             String    @id @default(cuid())
+  id             String     @id @default(cuid())
   projectId      String
-  project        Project   @relation(fields: [projectId], references: [id])
   suite          String
   env            String?
   branch         String?
@@ -30,36 +29,37 @@ model TestRun {
   finishedAt     DateTime?
   durationMs     Int
   coveragePct    Float?
-  passCount      Int       @default(0)
-  failCount      Int       @default(0)
-  skipCount      Int       @default(0)
-  totalCount     Int       @default(0)
+  passCount      Int        @default(0)
+  failCount      Int        @default(0)
+  skipCount      Int        @default(0)
+  totalCount     Int        @default(0)
   reportFilename String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   cases          TestCase[]
+  project        Project    @relation(fields: [projectId], references: [id])
 }
 
 model TestCase {
-  id          String   @id @default(cuid())
-  runId       String
-  run         TestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  name        String
-  status      String   // 'passed', 'failed', 'skipped'
-  durationMs  Int
+  id           String   @id @default(cuid())
+  runId        String
+  name         String
+  status       String
+  durationMs   Int
   errorMessage String?
-  browser     String?
-  tagsJson    String?  // JSON string of tags
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  browser      String?
+  tagsJson     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  run          TestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
 }
 
 model TestAutoCoverage {
-  id        String   @id @default(cuid())
+  id                String   @id @default(cuid())
   projectId         String
-  project           Project   @relation(fields: [projectId], references: [id])
   autoTestCovered   Int
   manualTestCovered Int
   total             Int
-  createdAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  project           Project  @relation(fields: [projectId], references: [id])
 }
