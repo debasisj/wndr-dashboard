@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  api:
+    build: ./api
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=file:./dev.db
+      - REPORTS_STORAGE=${REPORTS_STORAGE}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - ADMIN_ENABLED=true
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+    volumes:
+      - api_data:/app/prisma
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  web:
+    build: 
+      context: ./web
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api_data:
