@@ -266,3 +266,19 @@ footer {
   border-color: var(--primary);
   color: var(--text)
 }
+
+.apply-filters-btn{
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  height: fit-content
+}
+
+.apply-filters-btn:hover{
+  border-color: var(--primary);
+  color: var(--text)
+}
