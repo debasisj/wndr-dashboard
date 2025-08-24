@@ -233,7 +233,13 @@ router.get('/coverage/history', async (req, res) => {
 });
 
 router.get('/runs', async (req, res) => {
-  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
+  const { projectKey, since, until, page, limit } = req.query as { 
+    projectKey?: string; 
+    since?: string; 
+    until?: string;
+    page?: string;
+    limit?: string;
+  };
   const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
 
   let where: any = project ? { projectId: project.id } : {};
@@ -255,8 +261,33 @@ router.get('/runs', async (req, res) => {
     }
   }
 
-  const runs = await prisma.testRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: 50 });
-  res.json(runs);
+  // Pagination parameters
+  const pageNum = parseInt(page || '1', 10);
+  const pageSize = parseInt(limit || '50', 10);
+  const skip = (pageNum - 1) * pageSize;
+
+  // Get total count for pagination info
+  const totalCount = await prisma.testRun.count({ where });
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const runs = await prisma.testRun.findMany({ 
+    where, 
+    orderBy: { startedAt: 'desc' }, 
+    take: pageSize,
+    skip: skip
+  });
+
+  res.json({
+    runs,
+    pagination: {
+      currentPage: pageNum,
+      totalPages,
+      totalCount,
+      pageSize,
+      hasNext: pageNum < totalPages,
+      hasPrev: pageNum > 1
+    }
+  });
 });
 
 router.delete('/runs/:id', async (req, res) => {
