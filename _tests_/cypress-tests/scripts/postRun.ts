@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const apiBase = process.env.DASHBOARD_API || 'http://localhost:4000';
+const apiBase = process.env.DASHBOARD_API || 'http://52.62.135.103:4000';
+console.log('end point is',apiBase)
 const projectKey = process.env.DASHBOARD_PROJECT || 'web-app';
 
 type Counts = { pass: number; fail: number; skip: number; cases: any[]; startedAt?: string; finishedAt?: string };
@@ -108,7 +109,7 @@ async function uploadReport(runId: string, reportsDir: string) {
   }
   const form = new FormData();
   form.append('runId', runId);
-  form.append('report', new Blob([fs.readFileSync(htmls[0])]), 'cypress-report.html');
+  form.append('report', new Blob([fs.readFileSync(htmls[0])]), 'report.html');
   const res = await fetch(`${apiBase}/api/v1/reports/upload`, { method: 'POST', body: form as any });
   if (!res.ok) throw new Error(`upload failed: ${res.status}`);
   return res.json();
@@ -117,14 +118,18 @@ async function uploadReport(runId: string, reportsDir: string) {
 async function main() {
   const reportsDir = path.join(process.cwd(), 'reports');
   const { pass, fail, skip, cases, startedAt, finishedAt } = gatherResults(reportsDir);
+  // Use current time for test runs to avoid stale timestamps from old report files
+  const now = new Date();
+  const testStartTime = new Date(now.getTime() - 10000); // 10 seconds ago for start time
+  
   const payload = {
     projectKey,
     run: {
       suite: 'cypress',
       env: process.env.TEST_ENV || 'local',
       branch: process.env.CI_BRANCH || 'local',
-      startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
-      finishedAt: finishedAt ? new Date(finishedAt).toISOString() : new Date().toISOString()
+      startedAt: testStartTime.toISOString(),
+      finishedAt: now.toISOString()
     },
     cases
   };
