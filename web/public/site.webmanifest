@@ -1,0 +1,21 @@
+{
+  "name": "WNDR QA Dashboard",
+  "short_name": "WNDR Dashboard",
+  "description": "QA Automation KPIs Dashboard",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon-16x16.svg",
+      "sizes": "16x16",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}
