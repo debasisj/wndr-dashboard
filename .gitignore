@@ -33,6 +33,7 @@ Thumbs.db
 # Environment files
 .env
 .env.*
+!.env.deploy.template
 
 # Build output
 /dist/
