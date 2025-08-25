@@ -1,11 +1,13 @@
 # WNDR QA Automation Dashboard
 
+**The objective of this project is to create a testing dashboard easily and push results to it.**
+
 All-in-one dashboard for QA automation KPIs, execution tracking, and report management with comprehensive deployment options.
 
 ## Features
-- 📊 **Real-time KPI Dashboard** - Test execution metrics, pass/fail rates, coverage trends
-- 🔄 **Multi-Framework Support** - Playwright, Cypress, Selenium integration
-- 📈 **Historical Analytics** - 3+ years of test data with trend analysis
+- �  **Real-time KPI Dashboard** - Test execution metrics, pass/fail rates, coverage trends
+- � **Muloti-Framework Support** - Playwright, Cypress, Selenium integration
+- � **Haistorical Analytics** - 3+ years of test data with trend analysis
 - 📁 **Report Management** - HTML report upload with local/S3 storage
 - 🚀 **Easy Deployment** - Docker-based deployment for local and cloud environments
 - ⚡ **Real-time Updates** - Server-Sent Events for live dashboard updates
@@ -19,11 +21,53 @@ All-in-one dashboard for QA automation KPIs, execution tracking, and report mana
 - **Deployment**: Docker with multi-service orchestration
 - **Cloud Ready**: AWS S3 support (GCP & Azure coming soon)
 
-## Quick Start
+## Deployment Options
 
-### Option 1: Docker Deployment (Recommended)
+### Option 1: Docker Hub Deployment (Easiest - Recommended) 🚀
+
+**The easiest way to get started** - Pull pre-built images from Docker Hub and run in containers. No building required!
 
 #### Local Deployment
+```bash
+# 1. Download deployment files
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/docker-compose.deploy.yml
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/.env.deploy.template
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/scripts/deploy-docker.sh
+
+# 2. Create environment file
+cp .env.deploy.template .env.deploy
+# REGISTRY=debasisj/ is already configured
+
+# 3. Deploy (automatically pulls from Docker Hub)
+chmod +x deploy-docker.sh
+./deploy-docker.sh .env.deploy
+```
+
+#### Cloud Deployment (AWS EC2)
+```bash
+# 1. Download deployment files (same as above)
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/docker-compose.deploy.yml
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/.env.deploy.template
+curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/scripts/deploy-ec2.sh
+
+# 2. Configure for your EC2 instance
+cp .env.deploy.template .env.production
+# Edit .env.production:
+# - Set NEXT_PUBLIC_API_BASE_URL=http://YOUR_EC2_IP:4000
+
+# 3. Deploy to EC2 (automatically pulls from Docker Hub)
+chmod +x deploy-ec2.sh
+./deploy-ec2.sh ubuntu@YOUR_EC2_IP ~/.ssh/your-key.pem .env.production
+```
+
+**Available Images on Docker Hub:**
+- `debasisj/wndr-dashboard-api:latest` - Backend API
+- `debasisj/wndr-dashboard-web:latest` - Frontend Dashboard
+
+### Option 2: Clone Repository and Deploy 📦
+
+**For customization or development** - Clone the full repository for local modifications.
+
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
@@ -31,32 +75,23 @@ cd wndr-dashboard
 
 # 2. Create environment file
 cp .env.deploy.template .env.deploy
-# Edit .env.deploy - comment out REGISTRY for local deployment
 
-# 3. Deploy locally
+# 3. Deploy locally (uses Docker Hub images by default)
 ./scripts/deploy-docker.sh .env.deploy
-```
 
-#### EC2 Deployment
-```bash
-# 1. Create production environment file
+# 4. For EC2 deployment
 cp .env.deploy.template .env.production
-
-# 2. Configure for your EC2 instance
-# Edit .env.production:
-# - REGISTRY=debasisj/ (default - uses Docker Hub)
-# - Set NEXT_PUBLIC_API_BASE_URL=http://your-ec2-ip:4000
-
-# 3. Images are available from debasisj Docker Hub registry
-# No need to build - just configure and deploy
-
-# 4. Deploy to EC2
+# Edit .env.production with your EC2 IP
 ./scripts/deploy-ec2.sh ubuntu@your-ec2-ip ~/.ssh/your-key.pem .env.production
 ```
 
-### Option 2: Development Mode
+### Option 3: Development Mode (Advanced)
+**For developers who want to modify the code** - Run from source code.
+
 ```bash
-# 1. Install dependencies
+# 1. Clone and install dependencies
+git clone <repository-url>
+cd wndr-dashboard
 cd api && npm install && cd ../web && npm install && cd ..
 
 # 2. Setup database
@@ -71,9 +106,32 @@ cp .env.example .env.local
 npm run dev
 ```
 
-**Access Points:**
-- Web Dashboard: `http://localhost:3000` (local) or `http://your-ec2-ip:3000` (EC2)
-- API: `http://localhost:4000` (local) or `http://your-ec2-ip:4000` (EC2)
+## Access Points
+
+After deployment, access your dashboard at:
+- **Web Dashboard**: `http://localhost:3000` (local) or `http://YOUR_EC2_IP:3000` (cloud)
+- **API**: `http://localhost:4000` (local) or `http://YOUR_EC2_IP:4000` (cloud)
+
+## Why Docker Hub Deployment is Easiest
+
+✅ **No building required** - Pre-built images ready to use  
+✅ **Minimal setup** - Just download 3 files and run  
+✅ **Works anywhere** - Local machine, organization servers, or cloud platforms  
+✅ **Automatic updates** - Always pulls latest stable version  
+✅ **Cross-platform** - Works on Windows, macOS, Linux  
+✅ **Production ready** - Same images used in production environments
+
+## Deployment Flexibility
+
+**Run containers anywhere:**
+- 🏠 **Local Development** - Your laptop/desktop for testing
+- 🏢 **Organization Servers** - Internal servers within your company network  
+- ☁️ **Cloud Platforms** - AWS EC2, Google Cloud, Azure, DigitalOcean
+- 🐳 **Container Orchestration** - Kubernetes, Docker Swarm, ECS
+
+**Currently documented and automated:**
+- ✅ **AWS EC2** - Complete automation with `deploy-ec2.sh` script
+- 🚧 **GCP & Azure** - Coming soon with similar automation scripts
 
 ## REST API (Ingestion)
 POST `/api/v1/results`
@@ -224,23 +282,30 @@ scripts/                # Deployment automation
 
 ### Common Issues
 
-1. **Frontend can't connect to API**
+1. **Can't pull Docker images**
+   - Ensure Docker is installed and running
+   - Check internet connection for Docker Hub access
+   - Verify image names: `debasisj/wndr-dashboard-api:latest`
+
+2. **Frontend can't connect to API**
    - Ensure `NEXT_PUBLIC_API_BASE_URL` matches your deployment
-   - For EC2: Use public IP, not localhost
-   - Rebuild images after changing API URL
+   - For cloud deployment: Use public IP, not localhost
+   - Example: `NEXT_PUBLIC_API_BASE_URL=http://3.27.131.191:4000`
 
-2. **Port conflicts**
-   - Stop existing containers: `docker-compose down`
+3. **Port conflicts**
+   - Stop existing containers: `docker-compose -f docker-compose.deploy.yml down`
    - Check port usage: `netstat -tlnp | grep :3000`
+   - Change ports in `.env.deploy`: `API_PORT=4001` `WEB_PORT=3001`
 
-3. **No test data visible**
+4. **No test data visible**
    - Run seed scripts to generate sample data
    - Check database connection in API logs
+   - Verify API is accessible at the configured URL
 
-4. **File upload fails**
+5. **File upload fails**
    - Verify storage configuration (local vs S3)
    - Check AWS credentials if using S3
-   - Ensure proper file permissions
+   - Ensure proper file permissions in Docker volumes
 
 For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
