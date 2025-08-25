@@ -5,7 +5,7 @@ version: "3.9"
 
 services:
   api:
-    image: ${REGISTRY:-}wndr-dashboard-api:${VERSION:-latest}
+    image: ${REGISTRY:-debasisj/}wndr-dashboard-api:${VERSION:-latest}
     environment:
       - NODE_ENV=production
       - PORT=4000
@@ -34,7 +34,7 @@ services:
       retries: 3
 
   web:
-    image: ${REGISTRY:-}wndr-dashboard-web:${VERSION:-latest}
+    image: ${REGISTRY:-debasisj/}wndr-dashboard-web:${VERSION:-latest}
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}

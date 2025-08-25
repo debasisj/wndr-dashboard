@@ -44,11 +44,11 @@ cp .env.deploy.template .env.production
 
 # 2. Configure for your EC2 instance
 # Edit .env.production:
-# - Set REGISTRY=your-dockerhub-username/
+# - REGISTRY=debasisj/ (default - uses Docker Hub)
 # - Set NEXT_PUBLIC_API_BASE_URL=http://your-ec2-ip:4000
 
-# 3. Build and push images
-./scripts/build-images.sh latest your-dockerhub-username .env.production
+# 3. Images are available from debasisj Docker Hub registry
+# No need to build - just configure and deploy
 
 # 4. Deploy to EC2
 ./scripts/deploy-ec2.sh ubuntu@your-ec2-ip ~/.ssh/your-key.pem .env.production

@@ -8,7 +8,7 @@
 set -e
 
 VERSION=${1:-latest}
-REGISTRY=${2:-""}
+REGISTRY=${2:-"debasisj"}
 PROJECT_NAME="wndr-dashboard"
 
 # Colors for output
