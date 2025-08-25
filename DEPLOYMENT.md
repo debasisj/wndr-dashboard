@@ -14,14 +14,16 @@ The application consists of two Docker images:
 
 ```bash
 # Build images locally
-./scripts/build-images.sh v1.0.0
+./scripts/build-images.sh latest
 
-# Build and push to Docker Hub
-./scripts/build-images.sh v1.0.0 your-dockerhub-username
+# Build and push to Docker Hub (with environment file for correct API URL)
+./scripts/build-images.sh latest your-dockerhub-username .env.production
 
-# Build and push to AWS ECR
-./scripts/build-images.sh v1.0.0 123456789012.dkr.ecr.us-east-1.amazonaws.com
+# Build and push to AWS ECR (with environment file)
+./scripts/build-images.sh latest 123456789012.dkr.ecr.us-east-1.amazonaws.com .env.production
 ```
+
+**Important**: When building for production deployment, always provide the environment file as the third parameter to ensure the web image is built with the correct `NEXT_PUBLIC_API_BASE_URL`.
 
 ### 2. Deploy Locally
 
@@ -29,6 +31,7 @@ The application consists of two Docker images:
 # Create environment file
 cp .env.deploy.template .env.deploy
 # Edit .env.deploy with your configuration
+# For local deployment, comment out REGISTRY to use local images
 
 # Deploy using Docker Compose
 ./scripts/deploy-docker.sh .env.deploy
@@ -39,11 +42,18 @@ cp .env.deploy.template .env.deploy
 ```bash
 # Create environment file for production
 cp .env.deploy.template .env.production
-# Edit .env.production with production settings
+# Edit .env.production with production settings:
+# - Set NEXT_PUBLIC_API_BASE_URL=http://your-ec2-ip:4000
+# - Set REGISTRY=your-dockerhub-username/
+
+# Build images with correct environment
+./scripts/build-images.sh latest your-dockerhub-username .env.production
 
 # Deploy to EC2
 ./scripts/deploy-ec2.sh ubuntu@your-ec2-ip ~/.ssh/your-key.pem .env.production
 ```
+
+**Critical**: The `NEXT_PUBLIC_API_BASE_URL` must be set to your EC2 public IP before building images, as this is a build-time variable in Next.js.
 
 ## Configuration
 
@@ -55,7 +65,7 @@ cp .env.deploy.template .env.production
 | `VERSION` | Image version tag | `latest` | No |
 | `API_PORT` | API port mapping | `4000` | No |
 | `WEB_PORT` | Web port mapping | `3000` | No |
-| `NEXT_PUBLIC_API_BASE_URL` | API URL for frontend | `http://localhost:4000` | Yes |
+| `NEXT_PUBLIC_API_BASE_URL` | API URL for frontend | `http://localhost:4000` | Yes (build-time) |
 | `REPORTS_STORAGE` | Storage type (`local` or `s3`) | `local` | No |
 | `AWS_REGION` | AWS region for S3 | - | If using S3 |
 | `AWS_ACCESS_KEY_ID` | AWS access key | - | If using S3 |
@@ -85,11 +95,11 @@ AWS_S3_BUCKET=your-bucket-name
 
 ### Docker Hub
 ```bash
-# Build and push
-./scripts/build-images.sh v1.0.0 your-username
+# Build and push (with environment file for correct API URL)
+./scripts/build-images.sh latest your-username .env.production
 
-# In .env.deploy
-REGISTRY=your-username
+# In .env.deploy/.env.production
+REGISTRY=your-username/
 ```
 
 ### AWS ECR
@@ -97,20 +107,20 @@ REGISTRY=your-username
 # Login to ECR
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
 
-# Build and push
-./scripts/build-images.sh v1.0.0 123456789012.dkr.ecr.us-east-1.amazonaws.com
+# Build and push (with environment file)
+./scripts/build-images.sh latest 123456789012.dkr.ecr.us-east-1.amazonaws.com .env.production
 
-# In .env.deploy
-REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+# In .env.deploy/.env.production
+REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com/
 ```
 
 ### Private Registry
 ```bash
-# Build and push
-./scripts/build-images.sh v1.0.0 your-registry.com
+# Build and push (with environment file)
+./scripts/build-images.sh latest your-registry.com .env.production
 
-# In .env.deploy
-REGISTRY=your-registry.com
+# In .env.deploy/.env.production
+REGISTRY=your-registry.com/
 ```
 
 ## Deployment Scenarios
@@ -120,9 +130,10 @@ REGISTRY=your-registry.com
 # Local deployment with local storage
 cp .env.deploy.template .env.local
 # Edit .env.local:
-# REGISTRY=your-username
+# Comment out REGISTRY for local images OR set REGISTRY=your-username/
 # VERSION=latest
 # REPORTS_STORAGE=local
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 
 ./scripts/deploy-docker.sh .env.local
 ```
@@ -132,12 +143,16 @@ cp .env.deploy.template .env.local
 # Production deployment with S3 storage
 cp .env.deploy.template .env.production
 # Edit .env.production:
-# REGISTRY=your-username
-# VERSION=v1.0.0
-# NEXT_PUBLIC_API_BASE_URL=http://your-domain.com:4000
+# REGISTRY=your-username/
+# VERSION=latest
+# NEXT_PUBLIC_API_BASE_URL=http://your-ec2-ip:4000  # CRITICAL: Use actual EC2 IP
 # REPORTS_STORAGE=s3
 # AWS_* variables...
 
+# Build images with correct API URL
+./scripts/build-images.sh latest your-username .env.production
+
+# Deploy to EC2
 ./scripts/deploy-ec2.sh ubuntu@your-ec2-ip ~/.ssh/key.pem .env.production
 ```
 
@@ -179,21 +194,33 @@ docker-compose -f docker-compose.deploy.yml up -d
 
 ### Common Issues
 
-1. **Connection Refused**
+1. **Connection Refused (Frontend to API)**
+   - **Root Cause**: Web image built with wrong `NEXT_PUBLIC_API_BASE_URL`
+   - **Solution**: Rebuild images with correct environment file
+   ```bash
+   ./scripts/build-images.sh latest your-registry .env.production
+   ```
    - Check if ports are open in security groups (EC2)
-   - Verify `NEXT_PUBLIC_API_BASE_URL` matches your deployment
+   - Verify `NEXT_PUBLIC_API_BASE_URL` in environment file matches deployment IP
 
-2. **Database Issues**
+2. **Port Already in Use**
+   - **Solution**: Stop existing containers
+   ```bash
+   ssh -i key.pem ubuntu@ip 'cd /home/ubuntu/wndr-dashboard-deploy && docker-compose -f docker-compose.deploy.yml down'
+   ```
+
+3. **Database Issues**
    - Database is automatically migrated on container start
    - Data persists in Docker volumes
 
-3. **S3 Upload Issues**
+4. **S3 Upload Issues**
    - Verify AWS credentials and permissions
    - Check S3 bucket exists and is accessible
 
-4. **Image Pull Issues**
+5. **Image Pull Issues**
    - Ensure you're logged into the Docker registry
    - Verify image names and tags are correct
+   - Check REGISTRY variable includes trailing slash: `REGISTRY=username/`
 
 ### Health Checks
 
@@ -205,6 +232,20 @@ The deployment includes health checks for both services:
 
 - Container logs: `docker-compose logs`
 - Application logs: Inside containers at `/app/logs` (if configured)
+
+## Important Notes
+
+### Build-Time vs Runtime Variables
+
+- `NEXT_PUBLIC_*` variables are **build-time** variables in Next.js
+- They must be set during `docker build`, not just at container runtime
+- Always provide the environment file when building: `./scripts/build-images.sh latest registry .env.production`
+- If you change `NEXT_PUBLIC_API_BASE_URL`, you must rebuild and redeploy
+
+### Registry Configuration
+
+- Always include trailing slash in REGISTRY: `REGISTRY=username/` not `REGISTRY=username`
+- This ensures proper image naming: `username/wndr-dashboard-web:latest`
 
 ## Security Considerations
 
