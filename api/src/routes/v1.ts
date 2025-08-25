@@ -222,7 +222,9 @@ router.post('/reports/upload', upload.single('report'), async (req, res) => {
       // Local storage
       const finalPath = path.join(reportsDir, finalName);
       await fs.promises.mkdir(reportsDir, { recursive: true });
-      await fs.promises.rename(req.file.path, finalPath);
+      // Use copyFile + unlink instead of rename to handle cross-device moves
+      await fs.promises.copyFile(req.file.path, finalPath);
+      await fs.promises.unlink(req.file.path);
       reportUrl = `/reports/${finalName}`;
     }
 
