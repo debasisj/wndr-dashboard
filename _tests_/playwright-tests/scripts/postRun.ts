@@ -93,22 +93,32 @@ async function ingest(payload: any) {
 async function uploadReport(runId: string, reportDir: string) {
   const htmlIndex = path.join(reportDir, 'index.html');
   if (fs.existsSync(htmlIndex)) {
+    console.log('Uploading HTML report...');
     const form = new FormData();
     form.append('runId', runId);
-    form.append('report', new Blob([fs.readFileSync(htmlIndex)]), 'report.html');
+    form.append('report', new Blob([fs.readFileSync(htmlIndex)], { type: 'text/html' }), 'report.html');
     const res = await fetch(`${apiBase}/api/v1/reports/upload`, { method: 'POST', body: form as any });
-    if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTML upload failed: ${res.status} - ${errorText}`);
+    }
     return res.json();
   }
+
+  console.log('HTML not found, creating ZIP report...');
   const zipPath = path.join(process.cwd(), 'playwright-report.zip');
   const zip = new AdmZip();
   zip.addLocalFolder(reportDir);
   zip.writeZip(zipPath);
+
   const form = new FormData();
   form.append('runId', runId);
-  form.append('report', new Blob([fs.readFileSync(zipPath)]), 'report.zip');
+  form.append('report', new Blob([fs.readFileSync(zipPath)], { type: 'application/zip' }), 'report.zip');
   const res = await fetch(`${apiBase}/api/v1/reports/upload`, { method: 'POST', body: form as any });
-  if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`ZIP upload failed: ${res.status} - ${errorText}`);
+  }
   return res.json();
 }
 
