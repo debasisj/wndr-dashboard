@@ -9,70 +9,57 @@ function randomBetween(min: number, max: number): number {
 }
 
 function getProjectCoverageProfile(projectKey: string) {
-    // Different projects start with different total test counts and follow realistic automation adoption
+    // Different projects with relatively stable test counts over time
     switch (projectKey) {
         case 'web-app':
             return {
                 startingTotal: 300, // Starts with 300 tests
-                finalTotal: 350,    // Grows to 350 tests
-                startingAutoTests: 0,     // 0 automated initially
-                finalAutoTests: 345,      // 345 automated at the end
-                startingManualTests: 300, // All 300 manual initially
-                finalManualTests: 5,      // Only 5 manual at the end
-                volatility: 0.08
+                finalTotal: 320,    // Minimal growth to 320 tests
+                startingAutoTests: 0,     // 0 automated initially (0%)
+                finalAutoTests: 304,      // 95% automated at the end (304/320)
+                startingManualTests: 300, // All 300 manual initially (100%)
+                finalManualTests: 16,     // Only 5% manual at the end (16/320)
             };
         case 'api-service':
             return {
                 startingTotal: 450,
-                finalTotal: 520,
+                finalTotal: 470,    // Minimal growth
                 startingAutoTests: 0,
-                finalAutoTests: 500,
+                finalAutoTests: 447,    // 95% automated (447/470)
                 startingManualTests: 450,
-                finalManualTests: 20,
-                volatility: 0.06
+                finalManualTests: 23,   // 5% manual (23/470)
             };
         case 'mobile-app':
             return {
                 startingTotal: 180,
-                finalTotal: 240,
+                finalTotal: 190,    // Minimal growth
                 startingAutoTests: 0,
-                finalAutoTests: 220,
+                finalAutoTests: 181,    // 95% automated (181/190)
                 startingManualTests: 180,
-                finalManualTests: 20,
-                volatility: 0.12
+                finalManualTests: 9,    // 5% manual (9/190)
             };
         case 'data-pipeline':
             return {
                 startingTotal: 120,
-                finalTotal: 160,
+                finalTotal: 130,    // Minimal growth
                 startingAutoTests: 0,
-                finalAutoTests: 155,
+                finalAutoTests: 124,    // 95% automated (124/130)
                 startingManualTests: 120,
-                finalManualTests: 5,
-                volatility: 0.10
+                finalManualTests: 6,    // 5% manual (6/130)
             };
         default:
             return {
                 startingTotal: 250,
-                finalTotal: 300,
+                finalTotal: 260,    // Minimal growth
                 startingAutoTests: 0,
-                finalAutoTests: 280,
+                finalAutoTests: 247,    // 95% automated (247/260)
                 startingManualTests: 250,
-                finalManualTests: 20,
-                volatility: 0.10
+                finalManualTests: 13,   // 5% manual (13/260)
             };
     }
 }
 
-function getSeasonalCoverageMultiplier(date: Date): number {
-    const month = date.getMonth();
-    // Coverage work slows down during holidays and summer
-    if (month >= 5 && month <= 7) return 0.85; // Summer slowdown
-    if (month === 11) return 0.70; // December holidays
-    if (month === 0) return 0.80; // January ramp-up
-    if (month === 8 || month === 9) return 1.15; // Back-to-school push
-    return 1.0;
-}
+// Removed seasonal multiplier function as coverage should be linear
 
 async function main() {
     console.log('Starting comprehensive coverage seed...');
@@ -120,45 +107,30 @@ async function main() {
         for (let weekOffset = 0; weekOffset < 3 * 52; weekOffset++) {
             const currentDate = new Date(startDate.getTime() + (weekOffset * 7 * 24 * 60 * 60 * 1000));
 
-            // Skip some weeks randomly to create realistic gaps
-            if (Math.random() < 0.15) continue; // 15% chance to skip a week
+            // Skip some weeks randomly to create realistic gaps (but less frequently)
+            if (Math.random() < 0.05) continue; // Only 5% chance to skip a week
 
-            const seasonalMultiplier = getSeasonalCoverageMultiplier(currentDate);
             const progressRatio = weekOffset / (3 * 52); // 0 to 1 over 3 years
 
-            // Calculate total tests growth from starting to final
-            const totalGrowth = profile.startingTotal + 
+            // Total tests remain relatively constant with minimal growth
+            const totalGrowth = profile.startingTotal +
                 (profile.finalTotal - profile.startingTotal) * progressRatio;
-            const seasonalVariation = seasonalMultiplier;
-            const randomVariation = 1 + (Math.random() - 0.5) * profile.volatility;
-            
-            const total = Math.floor(totalGrowth * seasonalVariation * randomVariation);
-            
-            // Calculate automation progression: starts at 0, grows to final amount
-            // Use a sigmoid curve for realistic automation adoption, but shifted to start near 0
-            const automationProgress = progressRatio < 0.1 ? 0 : 
-                1 / (1 + Math.exp(-10 * (progressRatio - 0.6))); // S-curve starting later
-            const autoTestCovered = Math.floor(
-                profile.startingAutoTests + 
-                (profile.finalAutoTests - profile.startingAutoTests) * automationProgress
-            );
-            
-            // Manual tests start high and decrease as automation increases
-            const manualProgress = 1 - automationProgress; // Inverse of automation
-            const manualTestCovered = Math.floor(
-                profile.startingManualTests * manualProgress + 
-                profile.finalManualTests * (1 - manualProgress)
-            );
-            
-            // Add some milestone events that cause jumps in automation
-            let milestoneBoost = 1.0;
-            if (weekOffset % 26 === 0 && weekOffset > 0) { // Every 6 months
-                milestoneBoost = 1.05 + Math.random() * 0.1; // 5-15% boost in automation
-            }
-            
-            const finalAutoTests = Math.min(total, Math.floor(autoTestCovered * milestoneBoost));
-            const finalManualTests = Math.max(0, Math.min(total - finalAutoTests, manualTestCovered));
-            const finalTotal = Math.max(finalAutoTests + finalManualTests, total);
+            // Very minimal random variation (±2%)
+            const randomVariation = 1 + (Math.random() - 0.5) * 0.04;
+            const total = Math.floor(totalGrowth * randomVariation);
+
+            // Linear automation progression: 0% to 95% over 3 years
+            const automationProgress = Math.min(0.95, progressRatio);
+            const autoTestCovered = Math.floor(total * automationProgress);
+
+            // Manual tests: linear decrease from 100% to 5%
+            const manualProgress = Math.max(0.05, 1 - progressRatio);
+            const manualTestCovered = Math.floor(total * manualProgress);
+
+            // Ensure totals are consistent
+            const finalAutoTests = autoTestCovered;
+            const finalManualTests = Math.max(0, total - finalAutoTests);
+            const finalTotal = total;
 
             batch.push({
                 projectId: project.id,
@@ -214,13 +186,17 @@ async function main() {
             const dayOfWeek = currentDate.getDay();
             if ((dayOfWeek === 0 || dayOfWeek === 6) && Math.random() < 0.7) continue;
 
-            // Small daily variations around the baseline
-            const dailyVariation = 1 + (Math.random() - 0.5) * 0.05; // ±2.5% variation
-            const growthFactor = 1 + (dayOffset / 90) * 0.1; // 10% growth over 90 days
+            // Very minimal daily variations (±1%)
+            const dailyVariation = 1 + (Math.random() - 0.5) * 0.02;
+            const growthFactor = 1 + (dayOffset / 90) * 0.02; // Only 2% growth over 90 days
 
             const total = Math.floor(latestCoverage.total * growthFactor * dailyVariation);
-            const autoTestCovered = Math.floor(latestCoverage.autoTestCovered * growthFactor * dailyVariation);
-            const manualTestCovered = Math.floor(latestCoverage.manualTestCovered * Math.max(0.8, growthFactor * dailyVariation));
+
+            // Continue linear automation progression
+            const progressInPeriod = dayOffset / 90;
+            const currentAutomationRatio = (latestCoverage.autoTestCovered / latestCoverage.total) + (progressInPeriod * 0.01); // 1% more automation over 90 days
+            const autoTestCovered = Math.floor(total * Math.min(0.95, currentAutomationRatio));
+            const manualTestCovered = Math.max(Math.floor(total * 0.05), total - autoTestCovered);
 
             recentBatch.push({
                 projectId: project.id,
