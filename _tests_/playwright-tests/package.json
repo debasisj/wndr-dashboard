@@ -6,7 +6,8 @@
   "scripts": {
     "test": "playwright test",
     "ingest": "tsx scripts/postRun.ts",
-    "e2e": "npm run test && npm run ingest"
+    "e2e": "npm run test && npm run ingest",
+    "e2e-remote": "cross-env DASHBOARD_API=http://3.27.131.191:4000 npm run test || true && npm run ingest"
   },
   "dependencies": {
     "adm-zip": "^0.5.12"
