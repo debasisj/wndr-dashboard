@@ -52,8 +52,19 @@ docker build -t "$API_IMAGE" -t "$API_IMAGE_LATEST" ./api
 
 # Build Web image
 echo_info "Building Web image..."
+# Load environment variables if env file is provided as third argument
+ENV_FILE=${3:-}
+if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
+    echo_info "Loading environment from $ENV_FILE"
+    export $(grep -v '^#' "$ENV_FILE" | grep 'NEXT_PUBLIC_' | xargs)
+fi
+
+# Use environment variable or default
+API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+echo_info "Building web with API_BASE_URL: $API_BASE_URL"
+
 docker build -t "$WEB_IMAGE" -t "$WEB_IMAGE_LATEST" \
-    --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:4000 \
+    --build-arg NEXT_PUBLIC_API_BASE_URL="$API_BASE_URL" \
     ./web
 
 echo_info "✅ Images built successfully!"
