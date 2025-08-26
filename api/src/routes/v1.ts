@@ -332,7 +332,14 @@ router.get('/runs', async (req, res) => {
     where,
     orderBy: { startedAt: 'desc' },
     take: pageSize,
-    skip: skip
+    skip: skip,
+    include: {
+      project: {
+        select: {
+          key: true
+        }
+      }
+    }
   });
 
   res.json({
