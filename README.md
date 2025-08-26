@@ -1,7 +1,5 @@
 # WNDR QA Automation Dashboard
 
-**The objective of this project is to create a testing dashboard easily and push results to it.**
-
 All-in-one dashboard for QA automation KPIs, execution tracking, and report management with comprehensive deployment options.
 
 ## Features
@@ -20,6 +18,12 @@ All-in-one dashboard for QA automation KPIs, execution tracking, and report mana
 - **Storage**: Local filesystem or AWS S3 for HTML reports
 - **Deployment**: Docker with multi-service orchestration
 - **Cloud Ready**: AWS S3 support (GCP & Azure coming soon)
+
+
+
+https://github.com/user-attachments/assets/a5009300-9957-4ab1-815a-ee186bbaa7df
+
+
 
 ## Deployment Options
 
