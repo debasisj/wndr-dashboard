@@ -164,9 +164,11 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Playwright tests with JSON reporter
 - Extracts test results from `results.json`
-- Uploads test data to dashboard API
+- Uploads test data to dashboard API (currently: name, status, duration, errors)
 - Uploads HTML report (or ZIP if no index.html)
-- Dashboard shows real-time updates
+- Dashboard shows real-time aggregate updates (pass/fail/skip counts)
+
+**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags) will be added in future releases.
 
 ### Cypress Integration
 
@@ -195,9 +197,11 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Cypress tests with mochawesome reporter
 - Extracts results from `reports/mochawesome.json`
-- Uploads test data to dashboard API
+- Uploads test data to dashboard API (currently: name, status, duration, errors)
 - Uploads HTML report from `reports/mochawesome.html`
-- Dashboard updates in real-time
+- Dashboard updates in real-time with aggregate data
+
+**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags) will be added in future releases.
 
 ### Selenium Integration
 
@@ -226,9 +230,11 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Selenium WebDriver tests with Mocha + mochawesome
 - Extracts results from `mochawesome-report/mochawesome.json`
-- Uploads test data to dashboard API
+- Uploads test data to dashboard API (currently: name, status, duration)
 - Uploads HTML report from `mochawesome-report/mochawesome.html`
-- Dashboard shows live updates
+- Dashboard shows live aggregate updates
+
+**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags, error details) will be added in future releases.
 
 ### Custom Integration
 
@@ -252,10 +258,20 @@ curl -X POST http://localhost:4000/api/v1/results \
     },
     "cases": [
       { "name": "login works", "status": "passed", "durationMs": 2100, "browser": "chromium", "tags": ["smoke"] },
-      { "name": "checkout fails", "status": "failed", "durationMs": 3500, "errorMessage": "ValidationError" }
+      { "name": "checkout fails", "status": "failed", "durationMs": 3500, "errorMessage": "ValidationError", "browser": "firefox" }
     ]
   }'
 ```
+
+**Individual Test Case Fields:**
+- `name` (required): Test case name
+- `status` (required): `"passed"`, `"failed"`, or `"skipped"`
+- `durationMs` (required): Test execution time in milliseconds
+- `errorMessage` (optional): Error details for failed tests
+- `browser` (optional): Browser used for the test (e.g., "chromium", "firefox")
+- `tags` (optional): Array of tags for categorization (e.g., ["smoke", "critical"])
+
+**📝 Note**: Individual test case details are stored in the database and accessible via the Admin API, but the current web dashboard shows only aggregate data (pass/fail/skip counts). Detailed test case visualization will be added in a future release.
 
 #### Upload HTML Report
 ```bash
@@ -404,7 +420,9 @@ The dashboard uses these main tables:
 
 - **Project**: Stores project information (`key`, `name`)
 - **TestRun**: Stores test execution metadata (`suite`, `env`, `branch`, `passCount`, etc.)
-- **TestCase**: Stores individual test case results (`name`, `status`, `durationMs`, `errorMessage`)
+- **TestCase**: Stores individual test case results (`name`, `status`, `durationMs`, `errorMessage`, `browser`, `tags`)
+
+**📝 Note**: Individual test case data is stored and queryable via Admin API, but not yet displayed in the web dashboard. Future releases will include detailed test case visualization, flaky test analysis, and individual test performance metrics.
 
 Use the schema endpoint to explore the full structure and relationships.
 
@@ -552,6 +570,24 @@ scripts/                # Deployment automation
    - Ensure proper file permissions in Docker volumes
 
 For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Roadmap & Future Enhancements
+
+### 🚧 Coming Soon
+
+#### Individual Test Case Visualization
+- **Test Case Details Page**: View individual test results with filtering and search
+- **Flaky Test Detection**: Identify tests with inconsistent pass/fail patterns
+- **Test Performance Analysis**: Track individual test execution times and trends
+- **Browser-specific Results**: Compare test results across different browsers
+- **Tag-based Filtering**: Filter and analyze tests by tags (smoke, regression, etc.)
+
+#### Enhanced Analytics
+- **Test Case Trends**: Historical performance of individual tests
+- **Failure Analysis**: Detailed error message analysis and categorization
+- **Test Suite Optimization**: Identify slow tests and optimization opportunities
+
+**Current Status**: Individual test case data is collected and stored, but web visualization is pending. Use the Admin API to query detailed test case information.
 
 ## License
 MIT
