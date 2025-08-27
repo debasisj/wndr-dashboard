@@ -76,7 +76,7 @@ function extractCasesAndTimes(pw: any): { pass: number; fail: number; skip: numb
         
         // Extract tags from test title (common pattern: "Test name @smoke @regression")
         const tagMatches = title.match(/@(\w+)/g);
-        const tags = tagMatches ? tagMatches.map(tag => tag.substring(1)) : undefined;
+        const tags = tagMatches ? tagMatches.map((tag: string) => tag.substring(1)) : undefined;
         
         // Clean title by removing tags
         const cleanTitle = title.replace(/@\w+/g, '').trim();
