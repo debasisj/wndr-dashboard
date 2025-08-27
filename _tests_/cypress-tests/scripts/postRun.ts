@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const apiBase = process.env.DASHBOARD_API || 'http://52.62.135.103:4000';
-console.log('end point is',apiBase)
+const apiBase = process.env.DASHBOARD_API || 'http://localhost:4000';
+console.log('end point is', apiBase)
 const projectKey = process.env.DASHBOARD_PROJECT || 'web-app';
 
 type Counts = { pass: number; fail: number; skip: number; cases: any[]; startedAt?: string; finishedAt?: string };
@@ -30,7 +30,26 @@ function collectFromSuite(suite: any, acc: Counts) {
       else if (state === 'skipped' || state === 'pending') status = 'skipped';
       else status = 'failed';
       if (status === 'passed') acc.pass++; else if (status === 'failed') acc.fail++; else acc.skip++;
-      acc.cases.push({ name: t.fullTitle || t.title, status, durationMs: Number(t.duration) || 0, errorMessage: t.err?.message });
+
+      // Extract browser info from Cypress test context
+      const browser = process.env.CYPRESS_BROWSER || 'chrome';
+
+      // Extract tags from test title or context (common Cypress pattern: "Test name @smoke @regression")
+      const title = t.fullTitle || t.title || '';
+      const tagMatches = title.match(/@(\w+)/g);
+      const tags = tagMatches ? tagMatches.map((tag: string) => tag.substring(1)) : undefined;
+
+      // Clean title by removing tags
+      const cleanTitle = title.replace(/@\w+/g, '').trim();
+
+      acc.cases.push({
+        name: cleanTitle || title,
+        status,
+        durationMs: Number(t.duration) || 0,
+        errorMessage: t.err?.message || (status === 'failed' ? t.err?.stack?.split('\n')[0] : undefined),
+        browser,
+        tags
+      });
     }
   }
   if (Array.isArray(suite.suites)) {
@@ -76,10 +95,11 @@ function gatherResults(dir: string): Counts {
   }
 
   if (acc.cases.length === 0) {
-    for (let i = 0; i < statsAgg.passes; i++) acc.cases.push({ name: `cypress-pass-${i + 1}`, status: 'passed', durationMs: 0 });
-    for (let i = 0; i < statsAgg.failures; i++) acc.cases.push({ name: `cypress-fail-${i + 1}`, status: 'failed', durationMs: 0 });
+    const browser = process.env.CYPRESS_BROWSER || 'chrome';
+    for (let i = 0; i < statsAgg.passes; i++) acc.cases.push({ name: `cypress-pass-${i + 1}`, status: 'passed', durationMs: 0, browser });
+    for (let i = 0; i < statsAgg.failures; i++) acc.cases.push({ name: `cypress-fail-${i + 1}`, status: 'failed', durationMs: 0, browser });
     const skippedTotal = Math.max(statsAgg.skipped, statsAgg.pending);
-    for (let i = 0; i < skippedTotal; i++) acc.cases.push({ name: `cypress-skip-${i + 1}`, status: 'skipped', durationMs: 0 });
+    for (let i = 0; i < skippedTotal; i++) acc.cases.push({ name: `cypress-skip-${i + 1}`, status: 'skipped', durationMs: 0, browser });
     acc.pass = statsAgg.passes;
     acc.fail = statsAgg.failures;
     acc.skip = skippedTotal;
@@ -121,7 +141,7 @@ async function main() {
   // Use current time for test runs to avoid stale timestamps from old report files
   const now = new Date();
   const testStartTime = new Date(now.getTime() - 10000); // 10 seconds ago for start time
-  
+
   const payload = {
     projectKey,
     run: {

@@ -24,16 +24,36 @@ function gatherFromMochawesome(filePath: string): Counts {
         if (Array.isArray(s.tests)) {
           for (const t of s.tests) {
             const state: 'passed' | 'failed' | 'skipped' = t.state === 'passed' ? 'passed' : t.state === 'pending' ? 'skipped' : 'failed';
-            acc.cases.push({ name: t.fullTitle || t.title, status: state, durationMs: Number(t.duration) || 0, errorMessage: t.err?.message });
+            
+            // Extract browser info from environment or default
+            const browser = process.env.SELENIUM_BROWSER || process.env.BROWSER || 'chrome';
+            
+            // Extract tags from test title (common pattern: "Test name @smoke @regression")
+            const title = t.fullTitle || t.title || '';
+            const tagMatches = title.match(/@(\w+)/g);
+            const tags = tagMatches ? tagMatches.map(tag => tag.substring(1)) : undefined;
+            
+            // Clean title by removing tags
+            const cleanTitle = title.replace(/@\w+/g, '').trim();
+            
+            acc.cases.push({ 
+              name: cleanTitle || title, 
+              status: state, 
+              durationMs: Number(t.duration) || 0, 
+              errorMessage: t.err?.message || (state === 'failed' ? t.err?.stack?.split('\n')[0] : undefined),
+              browser,
+              tags
+            });
           }
         }
       }
     }
   }
   if (acc.cases.length === 0 && (acc.pass + acc.fail + acc.skip) > 0) {
-    for (let i = 0; i < acc.pass; i++) acc.cases.push({ name: `selenium-pass-${i + 1}`, status: 'passed', durationMs: 0 });
-    for (let i = 0; i < acc.fail; i++) acc.cases.push({ name: `selenium-fail-${i + 1}`, status: 'failed', durationMs: 0 });
-    for (let i = 0; i < acc.skip; i++) acc.cases.push({ name: `selenium-skip-${i + 1}`, status: 'skipped', durationMs: 0 });
+    const browser = process.env.SELENIUM_BROWSER || process.env.BROWSER || 'chrome';
+    for (let i = 0; i < acc.pass; i++) acc.cases.push({ name: `selenium-pass-${i + 1}`, status: 'passed', durationMs: 0, browser });
+    for (let i = 0; i < acc.fail; i++) acc.cases.push({ name: `selenium-fail-${i + 1}`, status: 'failed', durationMs: 0, browser });
+    for (let i = 0; i < acc.skip; i++) acc.cases.push({ name: `selenium-skip-${i + 1}`, status: 'skipped', durationMs: 0, browser });
   }
   return acc;
 }

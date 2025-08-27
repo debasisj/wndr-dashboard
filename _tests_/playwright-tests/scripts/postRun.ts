@@ -68,7 +68,27 @@ function extractCasesAndTimes(pw: any): { pass: number; fail: number; skip: numb
         else status = 'failed';
         if (status === 'passed') pass++; else if (status === 'failed') fail++; else skip++;
         const errorMessage = t.errors?.[0]?.message || resultArr.find((r: any) => r.error)?.error?.message;
-        cases.push({ name: title, status, durationMs, errorMessage });
+        
+        // Extract browser info from Playwright test results
+        const browser = resultArr[0]?.workerIndex !== undefined ? 
+          (process.env.PLAYWRIGHT_BROWSER || 'chromium') : 
+          'chromium';
+        
+        // Extract tags from test title (common pattern: "Test name @smoke @regression")
+        const tagMatches = title.match(/@(\w+)/g);
+        const tags = tagMatches ? tagMatches.map(tag => tag.substring(1)) : undefined;
+        
+        // Clean title by removing tags
+        const cleanTitle = title.replace(/@\w+/g, '').trim();
+        
+        cases.push({ 
+          name: cleanTitle || title, 
+          status, 
+          durationMs, 
+          errorMessage,
+          browser,
+          tags
+        });
       }
     }
   }
