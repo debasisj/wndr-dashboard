@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="nav">
               <a href="/">🏠 <span>Dashboard</span></a>
               <a href="/runs">🧪 <span>Runs</span></a>
+              <a href="/analytics">📊 <span>Analytics</span></a>
               <a href="/reports">📄 <span>Reports</span></a>
               <a href="/admin/db">🛠️ <span>Admin DB</span></a>
             </nav>

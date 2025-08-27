@@ -152,6 +152,7 @@ export DASHBOARD_PROJECT=my-web-app               # Project identifier
 export TEST_ENV=staging                           # Test environment
 export CI_BRANCH=main                             # Git branch
 export CI_COMMIT=abc123                           # Git commit hash
+export PLAYWRIGHT_BROWSER=chromium                # Browser for analytics (chromium/firefox/webkit)
 
 # 4. Run tests and upload results
 npm run e2e                                       # Runs tests + uploads results + reports
@@ -164,11 +165,14 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Playwright tests with JSON reporter
 - Extracts test results from `results.json`
-- Uploads test data to dashboard API (currently: name, status, duration, errors)
+- Uploads detailed test data to dashboard API including:
+  - Test name, status, duration, error messages
+  - Browser information (from environment variables)
+  - Tags extracted from test titles (e.g., "@smoke @regression")
 - Uploads HTML report (or ZIP if no index.html)
 - Dashboard shows real-time aggregate updates (pass/fail/skip counts)
 
-**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags) will be added in future releases.
+**📝 Enhanced Data Collection**: Now includes browser info and tags for better analytics!
 
 ### Cypress Integration
 
@@ -185,6 +189,7 @@ export DASHBOARD_PROJECT=my-web-app               # Project identifier
 export TEST_ENV=production                        # Test environment
 export CI_BRANCH=feature/login                    # Git branch
 export CI_COMMIT=def456                           # Git commit hash
+export CYPRESS_BROWSER=chrome                     # Browser for analytics (chrome/firefox/edge)
 
 # 4. Run tests and upload results
 npm run e2e                                       # Runs tests + uploads results + reports
@@ -197,11 +202,14 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Cypress tests with mochawesome reporter
 - Extracts results from `reports/mochawesome.json`
-- Uploads test data to dashboard API (currently: name, status, duration, errors)
+- Uploads detailed test data to dashboard API including:
+  - Test name, status, duration, error messages
+  - Browser information (from CYPRESS_BROWSER environment variable)
+  - Tags extracted from test titles (e.g., "@smoke @regression")
 - Uploads HTML report from `reports/mochawesome.html`
 - Dashboard updates in real-time with aggregate data
 
-**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags) will be added in future releases.
+**📝 Enhanced Data Collection**: Now includes browser info and tags for better analytics!
 
 ### Selenium Integration
 
@@ -218,6 +226,7 @@ export DASHBOARD_PROJECT=my-selenium-app          # Project identifier
 export TEST_ENV=local                             # Test environment
 export CI_BRANCH=develop                          # Git branch
 export CI_COMMIT=ghi789                           # Git commit hash
+export SELENIUM_BROWSER=chrome                    # Browser for analytics (chrome/firefox/safari/edge)
 
 # 4. Run tests and upload results
 npm run e2e                                       # Runs tests + uploads results + reports
@@ -230,11 +239,14 @@ npm run ingest                                    # Upload results to dashboard
 **What happens:**
 - Runs Selenium WebDriver tests with Mocha + mochawesome
 - Extracts results from `mochawesome-report/mochawesome.json`
-- Uploads test data to dashboard API (currently: name, status, duration)
+- Uploads detailed test data to dashboard API including:
+  - Test name, status, duration, error messages
+  - Browser information (from SELENIUM_BROWSER or BROWSER environment variables)
+  - Tags extracted from test titles (e.g., "@smoke @regression")
 - Uploads HTML report from `mochawesome-report/mochawesome.html`
 - Dashboard shows live aggregate updates
 
-**📝 Note**: Current integration sends basic test case data. Enhanced data collection (browser info, tags, error details) will be added in future releases.
+**📝 Enhanced Data Collection**: Now includes browser info, tags, and detailed error messages!
 
 ### Custom Integration
 
@@ -264,14 +276,18 @@ curl -X POST http://localhost:4000/api/v1/results \
 ```
 
 **Individual Test Case Fields:**
-- `name` (required): Test case name
+- `name` (required): Test case name (automatically cleaned of tags)
 - `status` (required): `"passed"`, `"failed"`, or `"skipped"`
 - `durationMs` (required): Test execution time in milliseconds
-- `errorMessage` (optional): Error details for failed tests
-- `browser` (optional): Browser used for the test (e.g., "chromium", "firefox")
-- `tags` (optional): Array of tags for categorization (e.g., ["smoke", "critical"])
+- `errorMessage` (optional): Error details for failed tests (enhanced with stack traces)
+- `browser` (optional): Browser used for the test (auto-detected from environment)
+- `tags` (optional): Array of tags extracted from test titles (e.g., ["smoke", "critical"])
 
-**📝 Note**: Individual test case details are stored in the database and accessible via the Admin API, but the current web dashboard shows only aggregate data (pass/fail/skip counts). Detailed test case visualization will be added in a future release.
+**📝 Enhanced Features**: 
+- **Auto Tag Extraction**: Tags like "@smoke @regression" are automatically extracted from test names
+- **Browser Detection**: Automatically detects browser from environment variables
+- **Rich Error Messages**: Includes stack traces and detailed error information
+- **Analytics Ready**: All data is now available for the new Analytics dashboard!
 
 #### Upload HTML Report
 ```bash

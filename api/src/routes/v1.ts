@@ -6,6 +6,8 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import type { Server } from 'node:http';
 import { S3Service } from '../services/s3.js';
+import { NaturalLanguageParser } from '../services/nlQueryParser.js';
+import { AnalyticsQueryBuilder } from '../services/analyticsQueryBuilder.js';
 
 export const router = Router();
 const prisma = new PrismaClient();
@@ -388,7 +390,11 @@ router.post('/admin/db/preview', async (req, res) => {
   if (!sql || typeof sql !== 'string') return res.status(400).json({ error: 'missing_sql' });
   try {
     const rows = await prisma.$queryRawUnsafe(sql);
-    res.json({ rows });
+    // Convert BigInt to regular numbers for JSON serialization
+    const serializedRows = JSON.parse(JSON.stringify(rows, (key, value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    ));
+    res.json({ rows: serializedRows });
   } catch (e: any) {
     res.status(400).json({ error: 'query_error', message: e?.message || String(e) });
   }
@@ -451,5 +457,229 @@ router.get('/suites', async (req, res) => {
     res.json(suites);
   } catch (e: any) {
     res.status(500).json({ error: 'fetch_suites_error', message: e?.message || String(e) });
+  }
+});
+
+// Natural Language Analytics Query
+router.post('/analytics/query', async (req, res) => {
+  try {
+    const { query } = req.body as { query?: string };
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'missing_query' });
+    }
+
+    // Parse natural language query
+    const parser = new NaturalLanguageParser();
+    const params = parser.parse(query);
+
+    // Build SQL query
+    const queryBuilder = new AnalyticsQueryBuilder();
+    const sql = queryBuilder.build(params);
+
+    // Execute query
+    const results = await prisma.$queryRawUnsafe(sql);
+
+    // Convert BigInt to regular numbers for JSON serialization
+    const serializedResults = JSON.parse(JSON.stringify(results, (key, value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    ));
+
+    // Get human-readable description
+    const description = parser.getDescription(params);
+
+    res.json({
+      query: query,
+      description: description,
+      params: params,
+      results: serializedResults,
+      count: Array.isArray(serializedResults) ? serializedResults.length : 0
+    });
+
+  } catch (e: any) {
+    console.error('Analytics query error:', e);
+    res.status(500).json({
+      error: 'analytics_query_error',
+      message: e?.message || String(e)
+    });
+  }
+});
+
+// Get failure details for a specific test
+router.get('/analytics/test/:testName/failures', async (req, res) => {
+  try {
+    const { testName } = req.params;
+    const { projectKey, days = '90' } = req.query as { projectKey?: string; days?: string };
+
+    // Calculate cutoff date
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    let projectFilter = '';
+    if (projectKey) {
+      const project = await prisma.project.findUnique({ where: { key: projectKey } });
+      if (project) {
+        projectFilter = `AND p.key = '${projectKey.replace(/'/g, "''")}'`;
+      }
+    }
+
+    const sql = `
+      SELECT 
+        tr.id as runId,
+        tr.startedAt,
+        tr.env,
+        tr.branch,
+        tr."commit" as commitHash,
+        tc.errorMessage,
+        tc.browser,
+        tc.durationMs,
+        p.key as project
+      FROM TestCase tc
+      JOIN TestRun tr ON tc.runId = tr.id
+      JOIN Project p ON tr.projectId = p.id
+      WHERE tc.name = '${testName.replace(/'/g, "''")}'
+        AND tc.status = 'failed'
+        AND date(datetime(tr.startedAt/1000, 'unixepoch')) > '${cutoffDateString}'
+        ${projectFilter}
+      ORDER BY tr.startedAt DESC
+      LIMIT 100
+    `;
+
+    const failures = await prisma.$queryRawUnsafe(sql);
+
+    // Convert BigInt to regular numbers for JSON serialization
+    const serializedFailures = JSON.parse(JSON.stringify(failures, (key, value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    ));
+
+    res.json({
+      testName,
+      failures: serializedFailures,
+      count: Array.isArray(serializedFailures) ? serializedFailures.length : 0
+    });
+
+  } catch (e: any) {
+    console.error('Test failures query error:', e);
+    res.status(500).json({
+      error: 'test_failures_error',
+      message: e?.message || String(e)
+    });
+  }
+});
+
+// Get query suggestions
+router.get('/analytics/suggestions', (req, res) => {
+  const suggestions = [
+    {
+      text: "Show me flaky tests with pass rate less than 80%",
+      category: "Flaky Tests",
+      icon: "🔄"
+    },
+    {
+      text: "Find tests failing more than 3 times in last 7 days",
+      category: "Failing Tests",
+      icon: "❌"
+    },
+    {
+      text: "Show slowest tests taking more than 30 seconds",
+      category: "Performance",
+      icon: "🐌"
+    },
+    {
+      text: "Brittle tests in staging environment last 3 months",
+      category: "Environment Issues",
+      icon: "🏗️"
+    },
+    {
+      text: "Tests that started failing in last week",
+      category: "Recent Issues",
+      icon: "🚨"
+    },
+    {
+      text: "Top 10 most unreliable tests",
+      category: "Top Issues",
+      icon: "📊"
+    },
+    {
+      text: "Slow tests in chrome browser last month",
+      category: "Browser Issues",
+      icon: "🌐"
+    },
+    {
+      text: "Flaky tests with pass rate between 20% and 80%",
+      category: "Flaky Tests",
+      icon: "🔄"
+    }
+  ];
+
+  res.json({ suggestions });
+});
+
+// Debug endpoint to check test case data
+router.get('/analytics/debug', async (req, res) => {
+  try {
+    const { days = '7' } = req.query as { days?: string };
+
+    // Check recent test cases
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    const recentCases = await prisma.$queryRawUnsafe(`
+      SELECT 
+        tc.name,
+        tc.status,
+        tr.startedAt,
+        p.key as project,
+        CAST(COUNT(*) OVER (PARTITION BY tc.name) as INTEGER) as total_runs,
+        CAST(SUM(CASE WHEN tc.status = 'failed' THEN 1 ELSE 0 END) OVER (PARTITION BY tc.name) as INTEGER) as total_failures
+      FROM TestCase tc
+      JOIN TestRun tr ON tc.runId = tr.id
+      JOIN Project p ON tr.projectId = p.id
+      WHERE date(datetime(tr.startedAt/1000, 'unixepoch')) > '${cutoffDateString}'
+      ORDER BY tr.startedAt DESC
+      LIMIT 20
+    `);
+
+    // Check failing test summary
+    const failingSummary = await prisma.$queryRawUnsafe(`
+      SELECT 
+        tc.name,
+        CAST(COUNT(*) as INTEGER) as total_runs,
+        CAST(SUM(CASE WHEN tc.status = 'failed' THEN 1 ELSE 0 END) as INTEGER) as failures,
+        p.key as project
+      FROM TestCase tc
+      JOIN TestRun tr ON tc.runId = tr.id
+      JOIN Project p ON tr.projectId = p.id
+      WHERE date(datetime(tr.startedAt/1000, 'unixepoch')) > '${cutoffDateString}'
+      GROUP BY tc.name, p.key
+      HAVING failures > 0
+      ORDER BY failures DESC
+      LIMIT 10
+    `);
+
+    // Convert BigInt to regular numbers for JSON serialization
+    const serializedRecentCases = JSON.parse(JSON.stringify(recentCases, (key, value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    ));
+    const serializedFailingSummary = JSON.parse(JSON.stringify(failingSummary, (key, value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    ));
+
+    res.json({
+      days: parseInt(days),
+      recentCases: serializedRecentCases,
+      failingSummary: serializedFailingSummary,
+      recentCasesCount: Array.isArray(serializedRecentCases) ? serializedRecentCases.length : 0,
+      failingSummaryCount: Array.isArray(serializedFailingSummary) ? serializedFailingSummary.length : 0
+    });
+
+  } catch (e: any) {
+    console.error('Debug query error:', e);
+    res.status(500).json({
+      error: 'debug_query_error',
+      message: e?.message || String(e)
+    });
   }
 });
