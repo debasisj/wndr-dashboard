@@ -4,6 +4,8 @@
 # Next.js build output
 **/.next/**
 
+**/dist/** 
+
 # Test reports and results
 **/reports/
 **/mochawesome-report/
