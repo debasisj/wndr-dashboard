@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Query Suggestions */}
-        {suggestions.length > 0 && !result && (
+        {suggestions.length > 0 && (
           <div>
             <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>
               Try these examples:
