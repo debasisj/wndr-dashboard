@@ -1,117 +1,72 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs';
+import path from 'path';
+import { TestCase, extractTags, getBrowser, ingest, uploadReport, createRun } from '../../shared/postRunUtils';
 
-const apiBase = process.env.DASHBOARD_API || 'http://localhost:4000';
-const projectKey = process.env.DASHBOARD_PROJECT || 'web-app';
-
-type Counts = { pass: number; fail: number; skip: number; cases: any[]; startedAt?: string; finishedAt?: string };
-
-function gatherFromMochawesome(filePath: string): Counts {
-  const acc: Counts = { pass: 0, fail: 0, skip: 0, cases: [] };
-  if (!fs.existsSync(filePath)) return acc;
+function parseMochawesome(filePath: string): { cases: TestCase[]; startedAt?: string; finishedAt?: string } {
+  if (!fs.existsSync(filePath)) return { cases: [] };
+  
   const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  if (json.stats) {
-    acc.pass = Number(json.stats.passes || 0);
-    acc.fail = Number(json.stats.failures || 0);
-    acc.skip = Number(json.stats.pending || 0) + Number(json.stats.skipped || 0);
-    if (json.stats.start) acc.startedAt = json.stats.start;
-    if (json.stats.end) acc.finishedAt = json.stats.end;
-  }
-  if (Array.isArray(json.results)) {
-    for (const r of json.results) {
-      const suites = Array.isArray(r.suites) ? r.suites : (r.suite ? [r.suite] : []);
-      for (const s of suites) {
-        if (Array.isArray(s.tests)) {
-          for (const t of s.tests) {
-            const state: 'passed' | 'failed' | 'skipped' = t.state === 'passed' ? 'passed' : t.state === 'pending' ? 'skipped' : 'failed';
-            
-            // Extract browser info from environment or default
-            const browser = process.env.SELENIUM_BROWSER || process.env.BROWSER || 'chrome';
-            
-            // Extract tags from test title (common pattern: "Test name @smoke @regression")
-            const title = t.fullTitle || t.title || '';
-            const tagMatches = title.match(/@(\w+)/g);
-            const tags = tagMatches ? tagMatches.map(tag => tag.substring(1)) : undefined;
-            
-            // Clean title by removing tags
-            const cleanTitle = title.replace(/@\w+/g, '').trim();
-            
-            acc.cases.push({ 
-              name: cleanTitle || title, 
-              status: state, 
-              durationMs: Number(t.duration) || 0, 
-              errorMessage: t.err?.message || (state === 'failed' ? t.err?.stack?.split('\n')[0] : undefined),
-              browser,
-              tags
-            });
-          }
+  const cases: TestCase[] = [];
+  const browser = getBrowser('selenium');
+  
+  // Extract timing info
+  const startedAt = json.stats?.start;
+  const finishedAt = json.stats?.end;
+  
+  // Parse test results
+  const results = Array.isArray(json.results) ? json.results : [];
+  for (const result of results) {
+    const suites = Array.isArray(result.suites) ? result.suites : (result.suite ? [result.suite] : []);
+    for (const suite of suites) {
+      if (Array.isArray(suite.tests)) {
+        for (const test of suite.tests) {
+          const title = test.fullTitle || test.title || '';
+          const { cleanTitle, tags } = extractTags(title);
+          
+          let status: 'passed' | 'failed' | 'skipped' = 'failed';
+          if (test.state === 'passed') status = 'passed';
+          else if (test.state === 'pending') status = 'skipped';
+          
+          cases.push({
+            name: cleanTitle,
+            status,
+            durationMs: Number(test.duration) || 0,
+            errorMessage: test.err?.message,
+            browser,
+            tags
+          });
         }
       }
     }
   }
-  if (acc.cases.length === 0 && (acc.pass + acc.fail + acc.skip) > 0) {
-    const browser = process.env.SELENIUM_BROWSER || process.env.BROWSER || 'chrome';
-    for (let i = 0; i < acc.pass; i++) acc.cases.push({ name: `selenium-pass-${i + 1}`, status: 'passed', durationMs: 0, browser });
-    for (let i = 0; i < acc.fail; i++) acc.cases.push({ name: `selenium-fail-${i + 1}`, status: 'failed', durationMs: 0, browser });
-    for (let i = 0; i < acc.skip; i++) acc.cases.push({ name: `selenium-skip-${i + 1}`, status: 'skipped', durationMs: 0, browser });
-  }
-  return acc;
-}
-
-async function ingest(payload: any) {
-  const res = await fetch(`${apiBase}/api/v1/results`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(`ingest failed: ${res.status}`);
-  return res.json();
-}
-
-async function uploadReport(runId: string, reportsDir: string) {
-  const htmlCandidates = [path.join(reportsDir, 'mochawesome.html'), path.join(reportsDir, 'index.html')];
-  const candidate = htmlCandidates.find(p => fs.existsSync(p));
-  if (!candidate) return;
-  const form = new FormData();
-  form.append('runId', runId);
-  form.append('report', new Blob([fs.readFileSync(candidate)]), 'selenium-report.html');
-  const res = await fetch(`${apiBase}/api/v1/reports/upload`, { method: 'POST', body: form as any });
-  if (!res.ok) throw new Error(`upload failed: ${res.status}`);
-  return res.json();
+  
+  return { cases, startedAt, finishedAt };
 }
 
 async function main() {
-  const candidates = [
+  const reportDirs = [
     path.join(process.cwd(), 'mochawesome-report'),
-    path.join(process.cwd(), 'reports'),
+    path.join(process.cwd(), 'reports')
   ];
-  const reportDir = candidates.find(d => fs.existsSync(d)) || candidates[0];
-  const merged = path.join(reportDir, 'mochawesome.json');
-  const { pass, fail, skip, cases, startedAt, finishedAt } = gatherFromMochawesome(merged);
-  const payload = {
-    projectKey,
-    run: {
-      suite: 'selenium',
-      env: process.env.TEST_ENV || 'local',
-      branch: process.env.CI_BRANCH || 'local',
-      startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
-      finishedAt: finishedAt ? new Date(finishedAt).toISOString() : new Date().toISOString()
-    },
-    cases
-  };
-  const result = await ingest(payload);
-  console.log('Ingested run:', result, { computed: { pass, fail, skip, total: pass + fail + skip } });
-  const uploaded = await uploadReport(result.runId, reportDir);
-  console.log('Uploaded report:', uploaded);
+  const reportDir = reportDirs.find(d => fs.existsSync(d)) || reportDirs[0];
+  const jsonPath = path.join(reportDir, 'mochawesome.json');
+  
+  const { cases, startedAt, finishedAt } = parseMochawesome(jsonPath);
+  const run = createRun('selenium', startedAt, finishedAt);
+  
+  const result = await ingest(run, cases);
+  console.log('Ingested run:', result);
+  
+  // Upload HTML report
+  const htmlCandidates = [
+    path.join(reportDir, 'mochawesome.html'),
+    path.join(reportDir, 'index.html')
+  ];
+  const htmlPath = htmlCandidates.find(p => fs.existsSync(p));
+  if (htmlPath) {
+    const uploaded = await uploadReport(result.runId, htmlPath, 'selenium-report.html');
+    console.log('Uploaded report:', uploaded);
+  }
 }
 
-main().catch((e) => {
-  console.error(e);
-  // Use a fallback for process.exit if process is not defined (e.g., in browser-like environments)
-  if (typeof process !== 'undefined' && process.exit) {
-    process.exit(1);
-  } else {
-    // Optionally throw to indicate failure in environments without process.exit
-    throw e;
-  }
-});
+main().catch((e) => { console.error(e); process.exit(1); });
