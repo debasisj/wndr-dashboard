@@ -683,3 +683,12 @@ router.get('/analytics/debug', async (req, res) => {
     });
   }
 });
+
+// API Documentation endpoints
+router.get('/docs', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'docs.html'));
+});
+
+router.get('/openapi.yaml', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'openapi.yaml'));
+});
