@@ -29,6 +29,23 @@ paths:
       description: |
         Submit test run results including individual test cases. This is the primary endpoint
         used by test runners (Cypress, Playwright, Selenium) to report results.
+        
+        ## Required Fields
+        - **projectKey**: Unique project identifier
+        - **run.suite**: Test framework name (e.g., 'cypress', 'playwright')
+        - **run.startedAt**: ISO 8601 timestamp when tests started
+        - **cases[].name**: Test case name (if submitting test cases)
+        - **cases[].status**: Test result ('passed', 'failed', 'skipped')
+        - **cases[].durationMs**: Test duration in milliseconds
+        
+        ## Optional Fields
+        - **run.finishedAt**: End timestamp (defaults to startedAt)
+        - **run.env**: Environment name
+        - **run.branch**: Git branch
+        - **run.commit**: Git commit hash
+        - **cases[].errorMessage**: Error details for failed tests
+        - **cases[].browser**: Browser name
+        - **cases[].tags**: Test categorization tags
       tags:
         - Test Results
       requestBody:
@@ -38,17 +55,35 @@ paths:
             schema:
               $ref: '#/components/schemas/TestResultsPayload'
             examples:
-              cypress_example:
-                summary: Cypress test results
+              minimal_required:
+                summary: Minimal required fields only
+                description: "Shows only the mandatory fields needed to submit test results"
+                value:
+                  projectKey: "web-app"
+                  run:
+                    suite: "cypress"
+                    startedAt: "2024-01-15T10:30:00Z"
+                  cases:
+                    - name: "Login test"
+                      status: "passed"
+                      durationMs: 2500
+                    - name: "Dashboard test"
+                      status: "failed"
+                      durationMs: 5000
+              full_example:
+                summary: Complete example with all fields
+                description: "Shows all available fields including optional ones"
                 value:
                   projectKey: "web-app"
                   run:
                     suite: "cypress"
                     env: "staging"
                     branch: "main"
-                    commit: "abc123"
+                    commit: "abc123def456"
+                    ciBuildId: "build-123"
                     startedAt: "2024-01-15T10:30:00Z"
                     finishedAt: "2024-01-15T10:35:00Z"
+                    coveragePct: 85.5
                   cases:
                     - name: "Login flow works correctly"
                       status: "passed"
@@ -60,6 +95,7 @@ paths:
                       durationMs: 5000
                       errorMessage: "Element not found: .dashboard-data"
                       browser: "chrome"
+                      tags: ["regression"]
       responses:
         '200':
           description: Test results successfully ingested
@@ -394,14 +430,16 @@ components:
       properties:
         projectKey:
           type: string
-          description: Unique identifier for the project
+          description: "**REQUIRED** - Unique identifier for the project (e.g., 'web-app', 'mobile-app')"
           example: "web-app"
+          minLength: 1
         run:
           $ref: '#/components/schemas/TestRun'
         cases:
           type: array
           items:
             $ref: '#/components/schemas/TestCase'
+          description: "Array of test cases. Can be empty if only submitting run metadata."
           default: []
 
     TestRun:
@@ -412,36 +450,41 @@ components:
       properties:
         suite:
           type: string
-          description: Test suite name (e.g., cypress, playwright, selenium)
+          description: "**REQUIRED** - Test suite name (e.g., 'cypress', 'playwright', 'selenium', 'jest')"
           example: "cypress"
+          minLength: 1
         env:
           type: string
-          description: Environment where tests ran
+          description: "Environment where tests ran (e.g., 'local', 'staging', 'production')"
           example: "staging"
         branch:
           type: string
-          description: Git branch
+          description: "Git branch name"
           example: "main"
         commit:
           type: string
-          description: Git commit hash
+          description: "Git commit hash (SHA)"
           example: "abc123def456"
         ciBuildId:
           type: string
-          description: CI build identifier
+          description: "CI/CD build identifier for tracking"
           example: "build-123"
         startedAt:
           type: string
           format: date-time
-          description: When the test run started
+          description: "**REQUIRED** - ISO 8601 timestamp when the test run started"
+          example: "2024-01-15T10:30:00Z"
         finishedAt:
           type: string
           format: date-time
-          description: When the test run finished
+          description: "ISO 8601 timestamp when the test run finished (optional, defaults to startedAt if not provided)"
+          example: "2024-01-15T10:35:00Z"
         coveragePct:
           type: number
-          description: Code coverage percentage
+          description: "Code coverage percentage (0-100)"
           example: 85.5
+          minimum: 0
+          maximum: 100
 
     TestCase:
       type: object
@@ -452,30 +495,32 @@ components:
       properties:
         name:
           type: string
-          description: Test case name
+          description: "**REQUIRED** - Human-readable test case name"
           example: "Login flow works correctly"
+          minLength: 1
         status:
           type: string
           enum: [passed, failed, skipped]
-          description: Test result status
+          description: "**REQUIRED** - Test result status. Must be one of: 'passed', 'failed', 'skipped'"
+          example: "passed"
         durationMs:
           type: integer
           minimum: 0
-          description: Test duration in milliseconds
+          description: "**REQUIRED** - Test execution duration in milliseconds (use 0 if unknown)"
           example: 2500
         errorMessage:
           type: string
-          description: Error message if test failed
+          description: "Error message or stack trace if test failed (recommended for failed tests)"
           example: "Element not found: .login-button"
         browser:
           type: string
-          description: Browser used for the test
+          description: "Browser used for the test (e.g., 'chrome', 'firefox', 'safari')"
           example: "chrome"
         tags:
           type: array
           items:
             type: string
-          description: Test tags for categorization
+          description: "Array of tags for test categorization (e.g., ['smoke', 'auth', 'regression'])"
           example: ["smoke", "auth"]
 
     TestResultsResponse:
