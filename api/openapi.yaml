@@ -1,0 +1,735 @@
+openapi: 3.0.3
+info:
+  title: Test Results Dashboard API
+  description: |
+    API for submitting test results and retrieving analytics from your test dashboard.
+    
+    ## Authentication
+    Most endpoints are public. Admin endpoints require the `X-Admin-Token` header.
+    
+    ## Common Use Cases
+    - **Submit test results**: POST `/api/v1/results` with test run data
+    - **Upload test reports**: POST `/api/v1/reports/upload` with HTML/ZIP files
+    - **Get test analytics**: GET `/api/v1/kpis/summary` for dashboard metrics
+    - **Query test history**: GET `/api/v1/runs` with filtering options
+    
+  version: 1.0.0
+  contact:
+    name: Test Dashboard API
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development server
+  - url: https://your-domain.com/api/v1
+    description: Production server
+
+paths:
+  /results:
+    post:
+      summary: Submit test results
+      description: |
+        Submit test run results including individual test cases. This is the primary endpoint
+        used by test runners (Cypress, Playwright, Selenium) to report results.
+        
+        ## Required Fields
+        - **projectKey**: Unique project identifier
+        - **run.suite**: Test framework name (e.g., 'cypress', 'playwright')
+        - **run.startedAt**: ISO 8601 timestamp when tests started
+        - **cases[].name**: Test case name (if submitting test cases)
+        - **cases[].status**: Test result ('passed', 'failed', 'skipped')
+        - **cases[].durationMs**: Test duration in milliseconds
+        
+        ## Optional Fields
+        - **run.finishedAt**: End timestamp (defaults to startedAt)
+        - **run.env**: Environment name
+        - **run.branch**: Git branch
+        - **run.commit**: Git commit hash
+        - **cases[].errorMessage**: Error details for failed tests
+        - **cases[].browser**: Browser name
+        - **cases[].tags**: Test categorization tags
+      tags:
+        - Test Results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestResultsPayload'
+            examples:
+              minimal_required:
+                summary: Minimal required fields only
+                description: "Shows only the mandatory fields needed to submit test results"
+                value:
+                  projectKey: "web-app"
+                  run:
+                    suite: "cypress"
+                    startedAt: "2024-01-15T10:30:00Z"
+                  cases:
+                    - name: "Login test"
+                      status: "passed"
+                      durationMs: 2500
+                    - name: "Dashboard test"
+                      status: "failed"
+                      durationMs: 5000
+              full_example:
+                summary: Complete example with all fields
+                description: "Shows all available fields including optional ones"
+                value:
+                  projectKey: "web-app"
+                  run:
+                    suite: "cypress"
+                    env: "staging"
+                    branch: "main"
+                    commit: "abc123def456"
+                    ciBuildId: "build-123"
+                    startedAt: "2024-01-15T10:30:00Z"
+                    finishedAt: "2024-01-15T10:35:00Z"
+                    coveragePct: 85.5
+                  cases:
+                    - name: "Login flow works correctly"
+                      status: "passed"
+                      durationMs: 2500
+                      browser: "chrome"
+                      tags: ["smoke", "auth"]
+                    - name: "Dashboard loads data"
+                      status: "failed"
+                      durationMs: 5000
+                      errorMessage: "Element not found: .dashboard-data"
+                      browser: "chrome"
+                      tags: ["regression"]
+      responses:
+        '200':
+          description: Test results successfully ingested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResultsResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/upload:
+    post:
+      summary: Upload test report file
+      description: |
+        Upload HTML or ZIP test reports (like Mochawesome, Playwright HTML reports).
+        The report will be associated with a test run and made available for viewing.
+      tags:
+        - Test Reports
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - runId
+                - report
+              properties:
+                runId:
+                  type: string
+                  description: ID of the test run (returned from /results endpoint)
+                report:
+                  type: string
+                  format: binary
+                  description: HTML or ZIP report file
+      responses:
+        '200':
+          description: Report uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportUrl:
+                    type: string
+                    description: URL to access the uploaded report
+        '400':
+          description: Missing runId or file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/{filename}:
+    get:
+      summary: Download test report
+      description: Download or view a previously uploaded test report
+      tags:
+        - Test Reports
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Report filename
+      responses:
+        '200':
+          description: Report file or redirect to signed URL
+        '404':
+          description: Report not found
+
+  /kpis/summary:
+    get:
+      summary: Get test metrics summary
+      description: |
+        Get high-level test metrics including pass rates, average duration,
+        and coverage statistics. Useful for dashboards and monitoring.
+      tags:
+        - Analytics
+      parameters:
+        - name: projectKey
+          in: query
+          schema:
+            type: string
+          description: Filter by specific project
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter results from this date
+        - name: until
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter results until this date
+      responses:
+        '200':
+          description: Test metrics summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KPISummary'
+
+  /runs:
+    get:
+      summary: Get test runs
+      description: |
+        Retrieve paginated list of test runs with filtering options.
+        Useful for displaying test history and trends.
+      tags:
+        - Test Runs
+      parameters:
+        - name: projectKey
+          in: query
+          schema:
+            type: string
+          description: Filter by project
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter runs from this date
+        - name: until
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter runs until this date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Number of runs per page
+      responses:
+        '200':
+          description: List of test runs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestRunsResponse'
+
+  /runs/{id}:
+    delete:
+      summary: Delete test run
+      description: Delete a test run and all associated test cases and reports
+      tags:
+        - Test Runs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Test run ID
+      responses:
+        '200':
+          description: Test run deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        '404':
+          description: Test run not found
+
+  /projects:
+    get:
+      summary: Get all projects
+      description: Get list of all projects for filtering and selection
+      tags:
+        - Projects
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+
+  /suites:
+    get:
+      summary: Get test suites
+      description: Get list of test suites, optionally filtered by project
+      tags:
+        - Test Suites
+      parameters:
+        - name: projectKey
+          in: query
+          schema:
+            type: string
+          description: Filter suites by project
+      responses:
+        '200':
+          description: List of test suites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    suite:
+                      type: string
+                      example: "cypress"
+
+  /analytics/query:
+    post:
+      summary: Natural language analytics query
+      description: |
+        Query test data using natural language. Examples:
+        - "Show me flaky tests with pass rate less than 80%"
+        - "Find tests failing more than 3 times in last 7 days"
+        - "Show slowest tests taking more than 30 seconds"
+      tags:
+        - Analytics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Natural language query
+                  example: "Show me flaky tests with pass rate less than 80%"
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsQueryResponse'
+
+  /analytics/suggestions:
+    get:
+      summary: Get query suggestions
+      description: Get pre-built natural language query suggestions
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: List of query suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuerySuggestion'
+
+  /analytics/test/{testName}/failures:
+    get:
+      summary: Get test failure details
+      description: Get detailed failure information for a specific test
+      tags:
+        - Analytics
+      parameters:
+        - name: testName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the test
+        - name: projectKey
+          in: query
+          schema:
+            type: string
+          description: Filter by project
+        - name: days
+          in: query
+          schema:
+            type: string
+            default: "90"
+          description: Number of days to look back
+      responses:
+        '200':
+          description: Test failure details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestFailuresResponse'
+
+  /events:
+    get:
+      summary: Server-Sent Events stream
+      description: |
+        Subscribe to real-time events about test runs (created, updated, deleted).
+        This is a Server-Sent Events (SSE) endpoint.
+      tags:
+        - Real-time
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  schemas:
+    TestResultsPayload:
+      type: object
+      required:
+        - projectKey
+        - run
+      properties:
+        projectKey:
+          type: string
+          description: "**REQUIRED** - Unique identifier for the project (e.g., 'web-app', 'mobile-app')"
+          example: "web-app"
+          minLength: 1
+        run:
+          $ref: '#/components/schemas/TestRun'
+        cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+          description: "Array of test cases. Can be empty if only submitting run metadata."
+          default: []
+
+    TestRun:
+      type: object
+      required:
+        - suite
+        - startedAt
+      properties:
+        suite:
+          type: string
+          description: "**REQUIRED** - Test suite name (e.g., 'cypress', 'playwright', 'selenium', 'jest')"
+          example: "cypress"
+          minLength: 1
+        env:
+          type: string
+          description: "Environment where tests ran (e.g., 'local', 'staging', 'production')"
+          example: "staging"
+        branch:
+          type: string
+          description: "Git branch name"
+          example: "main"
+        commit:
+          type: string
+          description: "Git commit hash (SHA)"
+          example: "abc123def456"
+        ciBuildId:
+          type: string
+          description: "CI/CD build identifier for tracking"
+          example: "build-123"
+        startedAt:
+          type: string
+          format: date-time
+          description: "**REQUIRED** - ISO 8601 timestamp when the test run started"
+          example: "2024-01-15T10:30:00Z"
+        finishedAt:
+          type: string
+          format: date-time
+          description: "ISO 8601 timestamp when the test run finished (optional, defaults to startedAt if not provided)"
+          example: "2024-01-15T10:35:00Z"
+        coveragePct:
+          type: number
+          description: "Code coverage percentage (0-100)"
+          example: 85.5
+          minimum: 0
+          maximum: 100
+
+    TestCase:
+      type: object
+      required:
+        - name
+        - status
+        - durationMs
+      properties:
+        name:
+          type: string
+          description: "**REQUIRED** - Human-readable test case name"
+          example: "Login flow works correctly"
+          minLength: 1
+        status:
+          type: string
+          enum: [passed, failed, skipped]
+          description: "**REQUIRED** - Test result status. Must be one of: 'passed', 'failed', 'skipped'"
+          example: "passed"
+        durationMs:
+          type: integer
+          minimum: 0
+          description: "**REQUIRED** - Test execution duration in milliseconds (use 0 if unknown)"
+          example: 2500
+        errorMessage:
+          type: string
+          description: "Error message or stack trace if test failed (recommended for failed tests)"
+          example: "Element not found: .login-button"
+        browser:
+          type: string
+          description: "Browser used for the test (e.g., 'chrome', 'firefox', 'safari')"
+          example: "chrome"
+        tags:
+          type: array
+          items:
+            type: string
+          description: "Array of tags for test categorization (e.g., ['smoke', 'auth', 'regression'])"
+          example: ["smoke", "auth"]
+
+    TestResultsResponse:
+      type: object
+      properties:
+        runId:
+          type: string
+          description: Unique identifier for the created test run
+        totals:
+          type: object
+          properties:
+            pass:
+              type: integer
+            fail:
+              type: integer
+            skip:
+              type: integer
+            total:
+              type: integer
+
+    KPISummary:
+      type: object
+      properties:
+        totals:
+          type: object
+          properties:
+            runs:
+              type: integer
+              description: Total number of test runs
+        passRate:
+          type: number
+          description: Overall pass rate (0-1)
+          example: 0.85
+        avgDurationMs:
+          type: integer
+          description: Average test duration in milliseconds
+        coveragePctAvg:
+          type: number
+          nullable: true
+          description: Average code coverage percentage
+
+    TestRunsResponse:
+      type: object
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRunDetails'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    TestRunDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        suite:
+          type: string
+        env:
+          type: string
+        branch:
+          type: string
+        commit:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+        passCount:
+          type: integer
+        failCount:
+          type: integer
+        skipCount:
+          type: integer
+        totalCount:
+          type: integer
+        reportUrl:
+          type: string
+          nullable: true
+        project:
+          $ref: '#/components/schemas/Project'
+
+    PaginationInfo:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalCount:
+          type: integer
+        pageSize:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+          example: "web-app"
+
+    AnalyticsQueryResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Original natural language query
+        description:
+          type: string
+          description: Human-readable description of what was queried
+        params:
+          type: object
+          description: Parsed query parameters
+        results:
+          type: array
+          items:
+            type: object
+          description: Query results
+        count:
+          type: integer
+          description: Number of results returned
+
+    QuerySuggestion:
+      type: object
+      properties:
+        text:
+          type: string
+          example: "Show me flaky tests with pass rate less than 80%"
+        category:
+          type: string
+          example: "Flaky Tests"
+        icon:
+          type: string
+          example: "🔄"
+
+    TestFailuresResponse:
+      type: object
+      properties:
+        testName:
+          type: string
+        failures:
+          type: array
+          items:
+            type: object
+            properties:
+              runId:
+                type: string
+              startedAt:
+                type: string
+                format: date-time
+              env:
+                type: string
+              branch:
+                type: string
+              commitHash:
+                type: string
+              errorMessage:
+                type: string
+              browser:
+                type: string
+              durationMs:
+                type: integer
+              project:
+                type: string
+        count:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+        message:
+          type: string
+          description: Human-readable error message
+
+  securitySchemes:
+    AdminToken:
+      type: apiKey
+      in: header
+      name: X-Admin-Token
+      description: Required for admin endpoints
+
+tags:
+  - name: Test Results
+    description: Submit and manage test results
+  - name: Test Reports
+    description: Upload and download test reports
+  - name: Analytics
+    description: Query test data and get insights
+  - name: Test Runs
+    description: Manage test run history
+  - name: Projects
+    description: Project management
+  - name: Test Suites
+    description: Test suite information
+  - name: Real-time
+    description: Real-time updates via Server-Sent Events
