@@ -34,9 +34,9 @@ https://github.com/user-attachments/assets/a5009300-9957-4ab1-815a-ee186bbaa7df
 #### Local Deployment
 ```bash
 # 1. Download deployment files
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/docker-compose.deploy.yml
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/.env.deploy.template
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/scripts/deploy-docker.sh
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/docker-compose.deploy.yml
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/.env.deploy.template
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-docker.sh
 
 # 2. Create environment file
 cp .env.deploy.template .env.deploy
@@ -50,9 +50,9 @@ chmod +x deploy-docker.sh
 #### Cloud Deployment (AWS EC2)
 ```bash
 # 1. Download deployment files (same as above)
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/docker-compose.deploy.yml
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/.env.deploy.template
-curl -O https://raw.githubusercontent.com/your-repo/wndr-dashboard/main/scripts/deploy-ec2.sh
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/docker-compose.deploy.yml
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/.env.deploy.template
+curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-ec2.sh
 
 # 2. Configure for your EC2 instance
 cp .env.deploy.template .env.production
