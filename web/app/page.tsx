@@ -236,12 +236,12 @@ function TinyTrend({ endpoint, mapper, filters }: {
   return (
     <div style={{ width: '100%', height: 240 }}>
       {data.length === 0 ? (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100%', 
-          color: '#a1a7b3', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: '#a1a7b3',
           fontSize: '14px',
           flexDirection: 'column',
           gap: '8px'
@@ -309,12 +309,12 @@ function StackedStatusChart({ filters }: { filters: Filters }) {
   return (
     <div style={{ width: '100%', height: 320 }}>
       {data.length === 0 ? (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100%', 
-          color: '#a1a7b3', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: '#a1a7b3',
           fontSize: '14px',
           flexDirection: 'column',
           gap: '8px'
@@ -376,12 +376,12 @@ function TestCoverageChart({ filters }: { filters: Filters }) {
   return (
     <div style={{ width: '100%', height: 320 }}>
       {data.length === 0 ? (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100%', 
-          color: '#a1a7b3', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: '#a1a7b3',
           fontSize: '14px',
           flexDirection: 'column',
           gap: '8px'

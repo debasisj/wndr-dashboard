@@ -445,9 +445,12 @@ router.post('/admin/db/execute', async (req, res) => {
   const { sql } = req.body || {};
   if (!sql || typeof sql !== 'string') return res.status(400).json({ error: 'missing_sql' });
   try {
+    console.log('Executing SQL:', sql); // Debug logging
     const result = await prisma.$executeRawUnsafe(sql);
+    console.log('SQL Result:', result); // Debug logging
     res.json({ result });
   } catch (e: any) {
+    console.error('SQL Execute Error:', e); // Debug logging
     res.status(400).json({ error: 'execute_error', message: e?.message || String(e) });
   }
 });

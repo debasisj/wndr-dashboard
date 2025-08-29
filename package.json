@@ -8,9 +8,9 @@
     ],
     "scripts": {
         "install:all": "npm install",
-        "dev": "npm run dev --workspace=api & npm run dev --workspace=web",
-        "dev:api": "npm run dev --workspace=api",
-        "dev:web": "npm run dev --workspace=web",
+        "dev": "cd api && npm run dev & cd web && npm run dev",
+        "dev:api": "cd api && npm run dev",
+        "dev:web": "cd web && npm run dev",
         "build": "npm run build --workspace=api && npm run build --workspace=web",
         "build:api": "npm run build --workspace=api",
         "build:web": "npm run build --workspace=web",
