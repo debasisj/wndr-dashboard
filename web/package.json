@@ -7,16 +7,6 @@
     "build": "next build",
     "start": "next start -p 3000"
   },
-  "dependencies": {
-    "next": "14.2.4",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "recharts": "^2.12.7"
-  },
-  "devDependencies": {
-    "@types/node": "^20.19.11",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
-    "typescript": "^5.4.5"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }

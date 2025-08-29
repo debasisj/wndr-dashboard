@@ -88,8 +88,33 @@ export default function Page() {
     { label: 'Coverage Avg', value: summary?.coveragePctAvg != null ? `${summary.coveragePctAvg.toFixed(1)}%` : '—' }
   ]), [summary]);
 
+  // Check if database appears to be empty
+  const isEmptyDatabase = summary && summary.totals.runs === 0;
+
   return (
     <div className="grid">
+      {/* Empty State Message */}
+      {isEmptyDatabase && (
+        <div className="card" style={{ backgroundColor: '#1a2332', border: '1px solid #2d3b4e', borderRadius: '8px', padding: '24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '24px' }}>🚀</span>
+            <h3 style={{ margin: 0, color: '#e2e4e9', fontSize: '18px' }}>Welcome to WNDR Dashboard!</h3>
+          </div>
+          <p style={{ color: '#a1a7b3', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+            Your dashboard is ready but no test data has been uploaded yet. The charts and metrics will appear once you start uploading test results.
+          </p>
+          <div style={{ backgroundColor: '#0f1419', padding: '16px', borderRadius: '6px', border: '1px solid #2d3b4e' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: '#4f86ff', fontSize: '14px' }}>Getting Started:</h4>
+            <ul style={{ color: '#a1a7b3', margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
+              <li>Upload test results using the API endpoints</li>
+              <li>Create projects and test runs via the API</li>
+              <li>Check the <a href="/admin/db" style={{ color: '#4f86ff', textDecoration: 'none' }}>Admin DB</a> page to view your data</li>
+              <li>Visit <a href="http://localhost:4000/api/v1/docs" style={{ color: '#4f86ff', textDecoration: 'none' }}>API Docs</a> for integration details</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Filters Section */}
       <div className="card">
         <div className="card-title">Filters</div>
@@ -210,21 +235,38 @@ function TinyTrend({ endpoint, mapper, filters }: {
 
   return (
     <div style={{ width: '100%', height: 240 }}>
-      <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#4f86ff" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#4f86ff" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="name" stroke="#a1a7b3" />
-          <YAxis stroke="#a1a7b3" />
-          <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
-          <Tooltip />
-          <Area type="monotone" dataKey="value" stroke="#4f86ff" fillOpacity={1} fill="url(#colorValue)" />
-        </AreaChart>
-      </ResponsiveContainer>
+      {data.length === 0 ? (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%', 
+          color: '#a1a7b3', 
+          fontSize: '14px',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '32px', opacity: 0.5 }}>📊</span>
+          <span>No data available</span>
+          <span style={{ fontSize: '12px', opacity: 0.7 }}>Upload test results to see trends</span>
+        </div>
+      ) : (
+        <ResponsiveContainer>
+          <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4f86ff" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#4f86ff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="name" stroke="#a1a7b3" />
+            <YAxis stroke="#a1a7b3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
+            <Tooltip />
+            <Area type="monotone" dataKey="value" stroke="#4f86ff" fillOpacity={1} fill="url(#colorValue)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
@@ -266,19 +308,36 @@ function StackedStatusChart({ filters }: { filters: Filters }) {
 
   return (
     <div style={{ width: '100%', height: 320 }}>
-      <ResponsiveContainer>
-        <BarChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
-          <XAxis dataKey="date" stroke="#a1a7b3" />
-          <YAxis allowDecimals={false} stroke="#a1a7b3" />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="passed" stackId="s" fill="#22c55e" name="Passed" />
-          <Bar dataKey="failed" stackId="s" fill="#ef4444" name="Failed" />
-          <Bar dataKey="skipped" stackId="s" fill="#a3a3a3" name="Skipped" />
-          <Bar dataKey="notExecuted" stackId="s" fill="#f59e0b" name="Not Executed" />
-        </BarChart>
-      </ResponsiveContainer>
+      {data.length === 0 ? (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%', 
+          color: '#a1a7b3', 
+          fontSize: '14px',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '32px', opacity: 0.5 }}>📊</span>
+          <span>No test run data available</span>
+          <span style={{ fontSize: '12px', opacity: 0.7 }}>Upload test results to see status breakdown</span>
+        </div>
+      ) : (
+        <ResponsiveContainer>
+          <BarChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
+            <XAxis dataKey="date" stroke="#a1a7b3" />
+            <YAxis allowDecimals={false} stroke="#a1a7b3" />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="passed" stackId="s" fill="#22c55e" name="Passed" />
+            <Bar dataKey="failed" stackId="s" fill="#ef4444" name="Failed" />
+            <Bar dataKey="skipped" stackId="s" fill="#a3a3a3" name="Skipped" />
+            <Bar dataKey="notExecuted" stackId="s" fill="#f59e0b" name="Not Executed" />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
@@ -316,70 +375,87 @@ function TestCoverageChart({ filters }: { filters: Filters }) {
 
   return (
     <div style={{ width: '100%', height: 320 }}>
-      <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="autoTestsGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="manualTestsGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="totalTestsGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#4f86ff" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#4f86ff" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
-          <XAxis dataKey="date" stroke="#a1a7b3" />
-          <YAxis stroke="#a1a7b3" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: '#131722',
-              border: '1px solid #202735',
-              borderRadius: '8px',
-              color: '#e8eaed'
-            }}
-            formatter={(value: any, name: string) => {
-              const labelMap: { [key: string]: string } = {
-                autoTests: 'Automated Tests',
-                manualTests: 'Manual Tests',
-                totalTests: 'Total Tests',
-                automationCoverage: 'Automation Coverage'
-              };
-              const suffix = name === 'automationCoverage' ? '%' : '';
-              return [value + suffix, labelMap[name] || name];
-            }}
-          />
-          <Legend />
-          <Area
-            type="monotone"
-            dataKey="totalTests"
-            stackId="1"
-            stroke="#4f86ff"
-            fill="url(#totalTestsGradient)"
-            name="Total Tests"
-          />
-          <Area
-            type="monotone"
-            dataKey="autoTests"
-            stackId="2"
-            stroke="#22c55e"
-            fill="url(#autoTestsGradient)"
-            name="Automated Tests"
-          />
-          <Area
-            type="monotone"
-            dataKey="manualTests"
-            stackId="3"
-            stroke="#f59e0b"
-            fill="url(#manualTestsGradient)"
-            name="Manual Tests"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      {data.length === 0 ? (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%', 
+          color: '#a1a7b3', 
+          fontSize: '14px',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '32px', opacity: 0.5 }}>📈</span>
+          <span>No coverage data available</span>
+          <span style={{ fontSize: '12px', opacity: 0.7 }}>Upload test coverage data to see automation progress</span>
+        </div>
+      ) : (
+        <ResponsiveContainer>
+          <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="autoTestsGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="manualTestsGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="totalTestsGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4f86ff" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#4f86ff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#202735" />
+            <XAxis dataKey="date" stroke="#a1a7b3" />
+            <YAxis stroke="#a1a7b3" />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#131722',
+                border: '1px solid #202735',
+                borderRadius: '8px',
+                color: '#e8eaed'
+              }}
+              formatter={(value: any, name: string) => {
+                const labelMap: { [key: string]: string } = {
+                  autoTests: 'Automated Tests',
+                  manualTests: 'Manual Tests',
+                  totalTests: 'Total Tests',
+                  automationCoverage: 'Automation Coverage'
+                };
+                const suffix = name === 'automationCoverage' ? '%' : '';
+                return [value + suffix, labelMap[name] || name];
+              }}
+            />
+            <Legend />
+            <Area
+              type="monotone"
+              dataKey="totalTests"
+              stackId="1"
+              stroke="#4f86ff"
+              fill="url(#totalTestsGradient)"
+              name="Total Tests"
+            />
+            <Area
+              type="monotone"
+              dataKey="autoTests"
+              stackId="2"
+              stroke="#22c55e"
+              fill="url(#autoTestsGradient)"
+              name="Automated Tests"
+            />
+            <Area
+              type="monotone"
+              dataKey="manualTests"
+              stackId="3"
+              stroke="#f59e0b"
+              fill="url(#manualTestsGradient)"
+              name="Manual Tests"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
