@@ -88,7 +88,7 @@ export default function AdminDbPage() {
         { name: 'commit', type: 'TEXT', nullable: true, primary_key: false },
         { name: 'ciBuildId', type: 'TEXT', nullable: true, primary_key: false },
         { name: 'startedAt', type: 'DATETIME', nullable: false, primary_key: false },
-        { name: 'finishedAt', type: 'DATETIME', nullable: true, primary_key: false },
+        { name: 'finishedAt', type: 'DATETIME', nullable: false, primary_key: false },
         { name: 'durationMs', type: 'INTEGER', nullable: false, primary_key: false },
         { name: 'coveragePct', type: 'REAL', nullable: true, primary_key: false },
         { name: 'passCount', type: 'INTEGER', nullable: false, primary_key: false, auto_generated: true },
