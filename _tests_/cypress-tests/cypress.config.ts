@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress';
+// @ts-ignore - CommonJS module without types
 import mochawesome from 'cypress-mochawesome-reporter/plugin';
 
 export default defineConfig({

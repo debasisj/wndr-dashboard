@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - DATABASE_URL=file:./dev.db
+      - DATABASE_URL=file:./prisma/dev.db
       - REPORTS_STORAGE=${REPORTS_STORAGE:-local}
       - REPORTS_DIR=/app/storage/reports
       # S3 Configuration (optional)
@@ -28,7 +28,7 @@ services:
       - "${API_PORT:-4000}:4000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -44,7 +44,7 @@ services:
       - api
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000" ]
       interval: 30s
       timeout: 10s
       retries: 3
