@@ -36,23 +36,23 @@ https://github.com/user-attachments/assets/a5009300-9957-4ab1-815a-ee186bbaa7df
 # 1. Download deployment files
 curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/docker-compose.deploy.yml
 curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/.env.deploy.template
-curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-docker.sh
+curl -LO --create-dirs --output-dir scripts https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-docker.sh
 
 # 2. Create environment file
 cp .env.deploy.template .env.deploy
 # REGISTRY=debasisj/ is already configured
 
 # 3. Deploy (automatically pulls from Docker Hub)
-chmod +x deploy-docker.sh
-./deploy-docker.sh .env.deploy
+chmod +x scripts/deploy-docker.sh
+./scripts/deploy-docker.sh .env.deploy
 ```
 
 #### Cloud Deployment (AWS EC2)
 ```bash
-# 1. Download deployment files (same as above)
+# 1. Download deployment files
 curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/docker-compose.deploy.yml
 curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/.env.deploy.template
-curl -O https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-ec2.sh
+curl -LO --create-dirs --output-dir scripts https://raw.githubusercontent.com/debasisj/wndr-dashboard/main/scripts/deploy-ec2.sh
 
 # 2. Configure for your EC2 instance
 cp .env.deploy.template .env.production
@@ -60,8 +60,8 @@ cp .env.deploy.template .env.production
 # - Set NEXT_PUBLIC_API_BASE_URL=http://YOUR_EC2_IP:4000
 
 # 3. Deploy to EC2 (automatically pulls from Docker Hub)
-chmod +x deploy-ec2.sh
-./deploy-ec2.sh ubuntu@YOUR_EC2_IP ~/.ssh/your-key.pem .env.production
+chmod +x scripts/deploy-ec2.sh
+./scripts/deploy-ec2.sh ubuntu@YOUR_EC2_IP ~/.ssh/your-key.pem .env.production
 ```
 
 **Available Images on Docker Hub:**

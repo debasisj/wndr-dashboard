@@ -147,43 +147,54 @@ router.post('/results', async (req, res) => {
 });
 
 router.get('/kpis/summary', async (req, res) => {
-  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
-  const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
+  try {
+    const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
+    const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
 
-  let where: any = project ? { projectId: project.id } : {};
+    let where: any = project ? { projectId: project.id } : {};
 
-  // Add date filtering with validation
-  if (since || until) {
-    where.startedAt = {};
-    if (since) {
-      const sinceDate = new Date(since);
-      if (!isNaN(sinceDate.getTime())) {
-        where.startedAt.gte = sinceDate;
+    // Add date filtering with validation
+    if (since || until) {
+      where.startedAt = {};
+      if (since) {
+        const sinceDate = new Date(since);
+        if (!isNaN(sinceDate.getTime())) {
+          where.startedAt.gte = sinceDate;
+        }
+      }
+      if (until) {
+        const untilDate = new Date(until);
+        if (!isNaN(untilDate.getTime())) {
+          where.startedAt.lte = untilDate;
+        }
       }
     }
-    if (until) {
-      const untilDate = new Date(until);
-      if (!isNaN(untilDate.getTime())) {
-        where.startedAt.lte = untilDate;
-      }
-    }
+
+    const [runsCount, last10, coverageAvg] = await Promise.all([
+      prisma.testRun.count({ where }),
+      prisma.testRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: 10 }),
+      prisma.testRun.aggregate({ where, _avg: { coveragePct: true } })
+    ]);
+
+    const passRate = last10.length ? last10.reduce((acc: number, r: { totalCount: number; passCount: number; }) => acc + (r.totalCount ? r.passCount / r.totalCount : 0), 0) / last10.length : 0;
+    const avgDuration = last10.length ? Math.round(last10.reduce((acc: any, r: { durationMs: any; }) => acc + r.durationMs, 0) / last10.length) : 0;
+
+    res.json({
+      totals: { runs: runsCount },
+      passRate,
+      avgDurationMs: avgDuration,
+      coveragePctAvg: coverageAvg._avg.coveragePct ?? null
+    });
+  } catch (error) {
+    console.error('Database error in /kpis/summary:', error);
+    // Return fallback data structure that frontend expects
+    res.json({
+      totals: { runs: 0 },
+      passRate: 0,
+      avgDurationMs: 0,
+      coveragePctAvg: null
+    });
   }
-
-  const [runsCount, last10, coverageAvg] = await Promise.all([
-    prisma.testRun.count({ where }),
-    prisma.testRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: 10 }),
-    prisma.testRun.aggregate({ where, _avg: { coveragePct: true } })
-  ]);
-
-  const passRate = last10.length ? last10.reduce((acc: number, r: { totalCount: number; passCount: number; }) => acc + (r.totalCount ? r.passCount / r.totalCount : 0), 0) / last10.length : 0;
-  const avgDuration = last10.length ? Math.round(last10.reduce((acc: any, r: { durationMs: any; }) => acc + r.durationMs, 0) / last10.length) : 0;
-
-  res.json({
-    totals: { runs: runsCount },
-    passRate,
-    avgDurationMs: avgDuration,
-    coveragePctAvg: coverageAvg._avg.coveragePct ?? null
-  });
 });
 
 // Storage configuration
@@ -266,95 +277,120 @@ router.get('/reports/:filename', async (req, res) => {
 });
 
 router.get('/coverage/history', async (req, res) => {
-  const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
-  const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
+  try {
+    const { projectKey, since, until } = req.query as { projectKey?: string; since?: string; until?: string };
+    const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
 
-  let where: any = project ? { projectId: project.id } : {};
+    let where: any = project ? { projectId: project.id } : {};
 
-  // Add date filtering with validation
-  if (since || until) {
-    where.createdAt = {};
-    if (since) {
-      const sinceDate = new Date(since);
-      if (!isNaN(sinceDate.getTime())) {
-        where.createdAt.gte = sinceDate;
+    // Add date filtering with validation
+    if (since || until) {
+      where.createdAt = {};
+      if (since) {
+        const sinceDate = new Date(since);
+        if (!isNaN(sinceDate.getTime())) {
+          where.createdAt.gte = sinceDate;
+        }
       }
-    }
-    if (until) {
-      const untilDate = new Date(until);
-      if (!isNaN(untilDate.getTime())) {
-        where.createdAt.lte = untilDate;
-      }
-    }
-  }
-
-  const testAutoCoverageVsManual = await prisma.testAutoCoverage.findMany({ where, orderBy: { createdAt: 'asc' }, take: 100 });
-  res.json(testAutoCoverageVsManual);
-});
-
-router.get('/runs', async (req, res) => {
-  const { projectKey, since, until, page, limit } = req.query as {
-    projectKey?: string;
-    since?: string;
-    until?: string;
-    page?: string;
-    limit?: string;
-  };
-  const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
-
-  let where: any = project ? { projectId: project.id } : {};
-
-  // Add date filtering with validation
-  if (since || until) {
-    where.startedAt = {};
-    if (since) {
-      const sinceDate = new Date(since);
-      if (!isNaN(sinceDate.getTime())) {
-        where.startedAt.gte = sinceDate;
-      }
-    }
-    if (until) {
-      const untilDate = new Date(until);
-      if (!isNaN(untilDate.getTime())) {
-        where.startedAt.lte = untilDate;
-      }
-    }
-  }
-
-  // Pagination parameters
-  const pageNum = parseInt(page || '1', 10);
-  const pageSize = parseInt(limit || '50', 10);
-  const skip = (pageNum - 1) * pageSize;
-
-  // Get total count for pagination info
-  const totalCount = await prisma.testRun.count({ where });
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  const runs = await prisma.testRun.findMany({
-    where,
-    orderBy: { startedAt: 'desc' },
-    take: pageSize,
-    skip: skip,
-    include: {
-      project: {
-        select: {
-          key: true
+      if (until) {
+        const untilDate = new Date(until);
+        if (!isNaN(untilDate.getTime())) {
+          where.createdAt.lte = untilDate;
         }
       }
     }
-  });
 
-  res.json({
-    runs,
-    pagination: {
-      currentPage: pageNum,
-      totalPages,
-      totalCount,
-      pageSize,
-      hasNext: pageNum < totalPages,
-      hasPrev: pageNum > 1
+    const testAutoCoverageVsManual = await prisma.testAutoCoverage.findMany({ where, orderBy: { createdAt: 'asc' }, take: 100 });
+    res.json(testAutoCoverageVsManual);
+  } catch (error) {
+    console.error('Database error in /coverage/history:', error);
+    // Return empty array that frontend expects
+    res.json([]);
+  }
+});
+
+router.get('/runs', async (req, res) => {
+  try {
+    const { projectKey, since, until, page, limit } = req.query as {
+      projectKey?: string;
+      since?: string;
+      until?: string;
+      page?: string;
+      limit?: string;
+    };
+    const project = projectKey ? await prisma.project.findUnique({ where: { key: projectKey } }) : null;
+
+    let where: any = project ? { projectId: project.id } : {};
+
+    // Add date filtering with validation
+    if (since || until) {
+      where.startedAt = {};
+      if (since) {
+        const sinceDate = new Date(since);
+        if (!isNaN(sinceDate.getTime())) {
+          where.startedAt.gte = sinceDate;
+        }
+      }
+      if (until) {
+        const untilDate = new Date(until);
+        if (!isNaN(untilDate.getTime())) {
+          where.startedAt.lte = untilDate;
+        }
+      }
     }
-  });
+
+    // Pagination parameters
+    const pageNum = parseInt(page || '1', 10);
+    const pageSize = parseInt(limit || '50', 10);
+    const skip = (pageNum - 1) * pageSize;
+
+    // Get total count for pagination info
+    const totalCount = await prisma.testRun.count({ where });
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const runs = await prisma.testRun.findMany({
+      where,
+      orderBy: { startedAt: 'desc' },
+      take: pageSize,
+      skip: skip,
+      include: {
+        project: {
+          select: {
+            key: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      runs,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        pageSize,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
+    });
+  } catch (error) {
+    console.error('Database error in /runs:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
+    res.status(500).json({
+      error: 'Database connection issue',
+      message: 'Unable to connect to database. Please ensure the database is properly set up.',
+      runs: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        pageSize: 50,
+        hasNext: false,
+        hasPrev: false
+      },
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+    });
+  }
 });
 
 router.delete('/runs/:id', async (req, res) => {
@@ -380,8 +416,21 @@ router.delete('/runs/:id', async (req, res) => {
 
 router.get('/admin/db/schema', async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const tables = await prisma.$queryRawUnsafe("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
-  res.json({ tables });
+  try {
+    const tables = await prisma.$queryRawUnsafe("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+    res.json({ tables });
+  } catch (e: any) {
+    console.error('Database connection issue for admin schema:', e?.message || String(e));
+    // Return fallback schema based on Prisma models when database is inaccessible
+    const fallbackTables = [
+      { name: 'Project' },
+      { name: 'TestRun' },
+      { name: 'TestCase' },
+      { name: 'TestAutoCoverage' },
+      { name: '_prisma_migrations' }
+    ];
+    res.json({ tables: fallbackTables });
+  }
 });
 
 router.post('/admin/db/preview', async (req, res) => {
@@ -396,7 +445,18 @@ router.post('/admin/db/preview', async (req, res) => {
     ));
     res.json({ rows: serializedRows });
   } catch (e: any) {
-    res.status(400).json({ error: 'query_error', message: e?.message || String(e) });
+    console.error('Database connection issue for admin preview:', e?.message || String(e));
+
+    // Check if it's a database connection issue
+    if (e?.message?.includes('Unable to open the database file') || e?.message?.includes('Error code 14')) {
+      res.status(400).json({
+        error: 'database_unavailable',
+        message: 'Database is currently unavailable. The database file may not exist or may be inaccessible. Try creating some data first using the GUI tab, or check if the database file exists.',
+        suggestion: 'Use the GUI tab to create sample data, which will initialize the database properly.'
+      });
+    } else {
+      res.status(400).json({ error: 'query_error', message: e?.message || String(e) });
+    }
   }
 });
 
@@ -405,10 +465,23 @@ router.post('/admin/db/execute', async (req, res) => {
   const { sql } = req.body || {};
   if (!sql || typeof sql !== 'string') return res.status(400).json({ error: 'missing_sql' });
   try {
+    console.log('Executing SQL:', sql); // Debug logging
     const result = await prisma.$executeRawUnsafe(sql);
+    console.log('SQL Result:', result); // Debug logging
     res.json({ result });
   } catch (e: any) {
-    res.status(400).json({ error: 'execute_error', message: e?.message || String(e) });
+    console.error('SQL Execute Error:', e); // Debug logging
+
+    // Check if it's a database connection issue
+    if (e?.message?.includes('Unable to open the database file') || e?.message?.includes('Error code 14')) {
+      res.status(400).json({
+        error: 'database_unavailable',
+        message: 'Database is currently unavailable. The database file may not exist or may be inaccessible. Try creating some data first using the GUI tab, or check if the database file exists.',
+        suggestion: 'Use the GUI tab to create sample data, which will initialize the database properly.'
+      });
+    } else {
+      res.status(400).json({ error: 'execute_error', message: e?.message || String(e) });
+    }
   }
 });
 
@@ -426,7 +499,9 @@ router.get('/projects', async (req, res) => {
     });
     res.json(projects);
   } catch (e: any) {
-    res.status(500).json({ error: 'fetch_projects_error', message: e?.message || String(e) });
+    console.error('Database connection issue for projects:', e?.message || String(e));
+    // Return empty array so frontend doesn't crash on .map()
+    res.json([]);
   }
 });
 
@@ -456,7 +531,9 @@ router.get('/suites', async (req, res) => {
 
     res.json(suites);
   } catch (e: any) {
-    res.status(500).json({ error: 'fetch_suites_error', message: e?.message || String(e) });
+    console.error('Database connection issue for suites:', e?.message || String(e));
+    // Return empty array so frontend doesn't crash on .map()
+    res.json([]);
   }
 });
 

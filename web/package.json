@@ -8,7 +8,8 @@
     "start": "next start -p 3000"
   },
   "dependencies": {
-    "next": "14.2.4",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "next": "^14.2.33",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^2.12.7"

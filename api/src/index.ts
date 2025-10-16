@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import fs from 'node:fs';
-import { router as v1Router, sseInit } from './routes/v1';
+import { router as v1Router, sseInit } from './routes/v1.js';
 
 const app = express();
 

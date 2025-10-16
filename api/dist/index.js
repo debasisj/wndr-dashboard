@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import fs from 'node:fs';
-import { router as v1Router, sseInit } from './routes/v1';
+import { router as v1Router, sseInit } from './routes/v1.js';
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const corsOrigin = process.env.CORS_ORIGIN || '*';
@@ -17,7 +17,7 @@ app.use('/reports', express.static(reportsDir));
 app.use('/api/v1', v1Router);
 // Health
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-const server = app.listen(port, () => {
-    console.log(`[api] listening on http://localhost:${port}`);
+const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`[api] listening on http://0.0.0.0:${port}`);
 });
 sseInit(server);
