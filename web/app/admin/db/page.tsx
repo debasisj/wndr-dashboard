@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createId } from '@paralleldrive/cuid2';
+import { createId } from '@paralleldrive/cuid2';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
@@ -42,6 +43,9 @@ export default function AdminDbPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'request_failed');
       setTables(json.tables || []);
+      if (json.tables?.length > 0 && !selectedTable) {
+        setSelectedTable(json.tables[0].name);
+      }
       if (json.tables?.length > 0 && !selectedTable) {
         setSelectedTable(json.tables[0].name);
       }
