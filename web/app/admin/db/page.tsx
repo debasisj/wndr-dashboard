@@ -45,6 +45,9 @@ export default function AdminDbPage() {
       if (json.tables?.length > 0 && !selectedTable) {
         setSelectedTable(json.tables[0].name);
       }
+      if (json.tables?.length > 0 && !selectedTable) {
+        setSelectedTable(json.tables[0].name);
+      }
     } catch (e: any) { setError(e.message); }
   };
 
@@ -143,9 +146,10 @@ export default function AdminDbPage() {
         let value = existingRow[col.name];
         // Convert ISO datetime to datetime-local format for editing
         if (col.type.toLowerCase().includes('date') && value) {
-          try {
-            value = new Date(value).toISOString().slice(0, 16);
-          } catch {
+          const dateValue = new Date(value);
+          if (!isNaN(dateValue.getTime())) {
+            value = dateValue.toISOString().slice(0, 16);
+          } else {
             value = existingRow[col.name]; // Keep original if conversion fails
           }
         }
@@ -448,7 +452,16 @@ export default function AdminDbPage() {
                                 let value = e.target.value;
                                 // Convert datetime-local to ISO string for DateTime fields
                                 if (column.type.toLowerCase().includes('date') && value) {
-                                  value = new Date(value).toISOString();
+                                  try {
+                                    const date = new Date(value);
+                                    // Check if the date is valid
+                                    if (!isNaN(date.getTime())) {
+                                      value = date.toISOString();
+                                    }
+                                    // If invalid, keep the original value (don't convert)
+                                  } catch {
+                                    // If conversion fails, keep the original value
+                                  }
                                 }
                                 setFormData(prev => ({ ...prev, [column.name]: value }));
                               }}

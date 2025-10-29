@@ -4,12 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    // Ingestion now happens automatically via Playwright's globalTeardown. The manual 'ingest' step was removed.
-    "_comment": "Ingestion now happens automatically via Playwright's globalTeardown. The manual 'ingest' step was removed.",
     "test": "playwright test",
     "ingest": "tsx scripts/postRun.ts",
     "e2e": "playwright test",
-    "e2e-remote": "cross-env DASHBOARD_API=http://3.27.131.191:4000 playwright test || true"
+    "e2e-remote": "DASHBOARD_API=http://3.27.131.191:4000 playwright test || true"
   },
   "dependencies": {
     "adm-zip": "^0.5.12"
