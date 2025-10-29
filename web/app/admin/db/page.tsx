@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createId } from '@paralleldrive/cuid2';
-import { createId } from '@paralleldrive/cuid2';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
