@@ -65,8 +65,14 @@ chmod +x scripts/deploy-ec2.sh
 ```
 
 **Available Images on Docker Hub:**
-- `debasisj/wndr-dashboard-api:latest` - Backend API
-- `debasisj/wndr-dashboard-web:latest` - Frontend Dashboard
+- `debasisj/wndr-dashboard-api:latest` - Backend API (Multi-platform: ARM64 & AMD64)
+- `debasisj/wndr-dashboard-web:latest` - Frontend Dashboard (Multi-platform: ARM64 & AMD64)
+
+**Platform Support:**
+- ✅ Apple Silicon Macs (ARM64)
+- ✅ Intel/AMD Macs & PCs (AMD64)
+- ✅ AWS EC2, GCP, Azure (AMD64)
+- ✅ AWS Graviton, Raspberry Pi (ARM64)
 
 ### Option 2: Clone Repository and Deploy 📦
 
@@ -110,6 +116,28 @@ cp .env.example .env.local
 npm run dev
 ```
 
+### Option 4: Build Your Own Docker Images (Contributors)
+**For contributors who want to build and publish their own images** - Build multi-platform Docker images.
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd wndr-dashboard
+
+# 2. Build multi-platform images (ARM64 + AMD64)
+# This creates images that work on all platforms
+./scripts/build-multiplatform.sh
+
+# Or with a version tag
+./scripts/build-multiplatform.sh v1.0.0
+
+# 3. Verify multi-platform support
+docker buildx imagetools inspect debasisj/wndr-dashboard-api:latest
+docker buildx imagetools inspect debasisj/wndr-dashboard-web:latest
+```
+
+**Note:** Multi-platform builds take 5-15 minutes and require Docker Buildx. See [DOCKER_HUB_MULTIPLATFORM.md](DOCKER_HUB_MULTIPLATFORM.md) for detailed instructions.
+
 ## Access Points
 
 After deployment, access your dashboard at:
@@ -121,6 +149,7 @@ After deployment, access your dashboard at:
 ✅ **No building required** - Pre-built images ready to use  
 ✅ **Minimal setup** - Just download 3 files and run  
 ✅ **Works anywhere** - Local machine, organization servers, or cloud platforms  
+✅ **Multi-platform support** - Same images work on ARM64 (Apple Silicon) and AMD64 (Intel/AMD)  
 ✅ **Automatic updates** - Always pulls latest stable version  
 ✅ **Cross-platform** - Works on Windows, macOS, Linux  
 ✅ **Production ready** - Same images used in production environments
@@ -508,12 +537,20 @@ web/                    # Next.js frontend
 _tests_/                # Test framework integrations
 ├── playwright-tests/   # Playwright E2E tests
 ├── cypress-tests/      # Cypress E2E tests
-└── selenium-tests/     # Selenium WebDriver tests
+├── selenium-tests/     # Selenium WebDriver tests
+└── shared/             # Shared test utilities
 scripts/                # Deployment automation
-├── build-images.sh     # Docker image building
-├── deploy-docker.sh    # Local Docker deployment
-└── deploy-ec2.sh       # EC2 deployment automation
+├── build-images.sh         # Docker image building
+├── build-multiplatform.sh  # Multi-platform Docker build (ARM64 + AMD64)
+├── deploy-docker.sh        # Local Docker deployment
+└── deploy-ec2.sh           # EC2 deployment automation
 ```
+
+**Key Documentation Files:**
+- `DEPLOYMENT.md` - Detailed deployment guide
+- `DOCKER_HUB_MULTIPLATFORM.md` - Multi-platform Docker image guide
+- `MULTIPLATFORM_FIX.md` - Quick fix for platform issues
+- `DOCKER_HUB_DEPLOYMENT.md` - Docker Hub deployment instructions
 
 ## Deployment Architecture
 
@@ -569,17 +606,24 @@ scripts/                # Deployment automation
    - Check internet connection for Docker Hub access
    - Verify image names: `debasisj/wndr-dashboard-api:latest`
 
-2. **Frontend can't connect to API**
+2. **Platform/Architecture errors (ARM64/AMD64)**
+   - Error: `no matching manifest for linux/arm64/v8` or `linux/amd64`
+   - **Solution**: The images are multi-platform and should work automatically
+   - Verify: `docker buildx imagetools inspect debasisj/wndr-dashboard-api:latest`
+   - You should see both `linux/amd64` and `linux/arm64` platforms
+   - See [MULTIPLATFORM_FIX.md](MULTIPLATFORM_FIX.md) for details
+
+3. **Frontend can't connect to API**
    - Ensure `NEXT_PUBLIC_API_BASE_URL` matches your deployment
    - For cloud deployment: Use public IP, not localhost
    - Example: `NEXT_PUBLIC_API_BASE_URL=http://3.27.131.191:4000`
 
-3. **Port conflicts**
+4. **Port conflicts**
    - Stop existing containers: `docker-compose -f docker-compose.deploy.yml down`
    - Check port usage: `netstat -tlnp | grep :3000`
    - Change ports in `.env.deploy`: `API_PORT=4001` `WEB_PORT=3001`
 
-4. **No test data visible**
+5. **No test data visible**
    - Run seed scripts to generate sample data
    - Check database connection in API logs
    - Verify API is accessible at the configured URL
@@ -608,6 +652,36 @@ For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 - **Test Suite Optimization**: Identify slow tests and optimization opportunities
 
 **Current Status**: Individual test case data is collected and stored, but web visualization is pending. Use the Admin API to query detailed test case information.
+
+## Contributing
+
+We welcome contributions! If you'd like to contribute:
+
+### Development Setup
+1. Fork the repository
+2. Clone your fork: `git clone <your-fork-url>`
+3. Install dependencies: `cd api && npm install && cd ../web && npm install`
+4. Make your changes
+5. Test locally with `npm run dev`
+
+### Building Docker Images
+If you're contributing changes that affect the Docker images:
+
+```bash
+# Build multi-platform images (required for production)
+./scripts/build-multiplatform.sh
+
+# This builds for both ARM64 (Apple Silicon) and AMD64 (Intel/AMD)
+# Takes 5-15 minutes but ensures compatibility across all platforms
+```
+
+See [DOCKER_HUB_MULTIPLATFORM.md](DOCKER_HUB_MULTIPLATFORM.md) for detailed build instructions.
+
+### Pull Request Guidelines
+- Test your changes locally
+- Update documentation if needed
+- For Docker changes, verify multi-platform builds work
+- Include a clear description of your changes
 
 ## License
 MIT

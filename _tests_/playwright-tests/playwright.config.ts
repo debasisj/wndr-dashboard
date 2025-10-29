@@ -14,5 +14,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
     }
-  ]
+  ],
+  // Automatically ingest test results after all tests complete
+  globalTeardown: './global-teardown.ts'
 });
