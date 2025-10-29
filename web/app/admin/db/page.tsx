@@ -449,7 +449,16 @@ export default function AdminDbPage() {
                                 let value = e.target.value;
                                 // Convert datetime-local to ISO string for DateTime fields
                                 if (column.type.toLowerCase().includes('date') && value) {
-                                  value = new Date(value).toISOString();
+                                  try {
+                                    const date = new Date(value);
+                                    // Check if the date is valid
+                                    if (!isNaN(date.getTime())) {
+                                      value = date.toISOString();
+                                    }
+                                    // If invalid, keep the original value (don't convert)
+                                  } catch {
+                                    // If conversion fails, keep the original value
+                                  }
                                 }
                                 setFormData(prev => ({ ...prev, [column.name]: value }));
                               }}
