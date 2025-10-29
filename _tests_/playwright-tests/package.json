@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    // Ingestion now happens automatically via Playwright's globalTeardown. The manual 'ingest' step was removed.
+    "_comment": "Ingestion now happens automatically via Playwright's globalTeardown. The manual 'ingest' step was removed.",
     "test": "playwright test",
     "ingest": "tsx scripts/postRun.ts",
     "e2e": "playwright test",
