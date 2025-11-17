@@ -25,6 +25,11 @@ https://github.com/user-attachments/assets/a5009300-9957-4ab1-815a-ee186bbaa7df
 
 
 
+https://github.com/user-attachments/assets/dce36ef8-5fde-4287-b359-bb0c32e02dec
+
+
+
+
 ## Deployment Options
 
 ### Option 1: Docker Hub Deployment (Easiest - Recommended) 🚀
